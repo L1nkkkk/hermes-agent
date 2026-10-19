@@ -138,6 +138,7 @@ describe('atelier workbench', () => {
     fireEvent.keyDown(step, { key: 'Enter' })
 
     const boxes = await screen.findAllByRole('checkbox', { name: 'lint' })
+    expect(screen.getAllByText('Process 0/1').length).toBeGreaterThan(0)
     expect(boxes[0]?.getAttribute('aria-checked')).toBe('false')
     expect(boxes[0]?.querySelector('[data-fill]')?.getAttribute('data-fill')).toBe('#5b8def')
     fireEvent.click(boxes[0]!)
@@ -211,7 +212,10 @@ describe('atelier workbench', () => {
     fireEvent.click(manuscript)
 
     await waitFor(() => {
-      expect(view.container.querySelector('.atelier-reader__path')?.textContent).toBe('ch01_deploy.md')
+      expect(view.container.querySelector('.atelier-reader__path')?.textContent).toContain('ch01_deploy.md')
+      expect(view.container.querySelector('.atelier-reader__path')?.textContent).toContain('Harper')
+      expect(view.container.querySelector('.atelier-goalstrip')?.textContent).toContain('Ship the chapter')
+      expect(view.container.querySelector('.atelier-goalstrip')?.textContent).not.toMatch(/Process \d/)
       expect(view.container.querySelector('.atelier-reader__h1')).toBeTruthy()
       expect(view.container.querySelector('.atelier-msg--mention')).toBeTruthy()
     })
@@ -222,5 +226,18 @@ describe('atelier workbench', () => {
     expect(view.container.querySelector('.atelier-session [data-tone="pending"]')?.getAttribute('data-fill')).toBe(
       '#5b8def'
     )
+  })
+
+  it('filters the maid list in the rail', async () => {
+    const view = render(<AtelierWorkbench gateway={gatewayFor([])} gatewayOpen notify={vi.fn()} storage={storage()} />)
+
+    await screen.findByRole('checkbox', { name: 'In room Notes' })
+    const rail = view.container.querySelector('[data-atelier-pane="left"]')
+
+    expect(rail).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'notes' } })
+
+    expect(within(rail as HTMLElement).queryByText('Harper')).toBeNull()
+    expect(within(rail as HTMLElement).getByText('Notes')).toBeTruthy()
   })
 })

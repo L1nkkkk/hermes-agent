@@ -3,6 +3,7 @@
 export const COPY = {
   nav: 'Atelier',
   open: 'Open Maid Atelier',
+  search: 'Search',
   sessions: 'Sessions',
   maids: 'Maids',
   workflows: 'Workflows',

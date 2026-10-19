@@ -20,7 +20,9 @@
 - Work 勾选经插件存储写入再读回。对不上或写入抛错则不更新，并提示 `Could not save this step on the progress card.` 分数只在有步骤时出现（`Process completed/total`）。不拿 `turns_used` / `max_turns` 当进度。
 - 步骤文字不是编辑框。标题像 `chNN_` 或 `.md` 的会话以手稿打开，进右栏阅读，不冒充步骤。
 - 群房里第一个指向其他在房干员的 `@` 会 `prompt.submit` 到对方 profile。房间会话不再收这一轮。提示：`Sent this turn to {name}. The reply stays in that agent's session.` 建不了会话时改走对方主会话，文案改成 main 那一句。
-- 小圆头像是插件内打包的 MyGO!!!!! / Ave Mujica 脸部 WebP。没存过的 profile 用 id 哈希落在固定一张脸上，换脸条按序号循环。换脸条在房间标题下面，不盖标题，也不盖侧栏名字。
+- 小圆头像是插件内打包的 MyGO!!!!! / Ave Mujica 脸部 WebP。没存过的 profile 用 id 哈希落在固定一张脸上，换脸条按序号循环。换脸条在房间标题下面，不盖标题，也不盖侧栏名字。侧栏行上的圆脸约 20px，忙闲点叠在脸的右下角。
+- 中栏顶上保留进度灯。输入框上方另有一条 Goal 条：有目标时写 `Goal {objective} · {status}`，只有插件步骤时才写 `Process completed/total` 并画进度条。没有步骤就不画分数。
+- 右栏路径是当前 profile 名加会话标题，不是工作区文件路径。章节标题用阅读器一级标题色。
 - @ 气泡左条 2px，`color-mix(white 24%, accent)`。阅读器一级标题和 Goal 强调色用同一实现色。
 
 ### 残留（过不去或未验）
@@ -29,12 +31,16 @@
 2. 没有跨 profile 的房间子会话，也没有把回复写回房间记录的通道。`parent_session_id` 只在同一网关内有意义，这里不用它跨 profile。`@` 的回复不在房间记录里。所谓回读是打开那个 profile 的会话，不是房间聚合记录。
 3. 「In room」是工台自己的勾选记录，不是 OpenClaw 的 session-child 图。Draft line 不写这张记录。房主永远在房里。
 4. 插件 SDK 没有安全的读文件口。右栏渲染的是恢复出来的会话记录（转成 Markdown），加上空态。它不是 OpenClaw 的工作区文件预览，插件也不去刮 `/api/files/read`。
-5. busy `#f59e0b`、idle `#7ec8c3`、online `#6fbf8a`、attention `#f87171`、Goal / 阅读器一级标题 `#60a5fa`、壳色（背景 `#1c1d21` 等）是实现选择。pending / blocked 才是锁定值。OpenClaw 自己的 pip CSS 仍把 busy 指到 `--info`；这里按清单的三分走，不跟那条 CSS。
+5. busy `#f59e0b`、idle `#7ec8c3`、online `#6fbf8a`、attention `#f87171`、Goal / 阅读器一级标题 `#60a5fa`、壳色（背景 `#141518`，侧栏 `#101114`）是实现选择。pending / blocked 才是锁定值。OpenClaw 自己的 pip CSS 仍把 busy 指到 `--info`；这里按清单的三分走，不跟那条 CSS。
 6. 头像是插件内的角色脸部图，不是 OpenClaw 的 `/maid-avatars/*.jpg`，也不是外链。
 7. 记录刷新是每 4 秒 `session.resume`，不是 `message.delta` 流。
 8. 文案只有英文，跟 OpenClaw 的英文字符串锁在一起。
 9. 没有活网关端到端，也没有 Electron 里的肉眼对照。管理员主观「是同一工台」不勾。
 10. P4 未做。OpenClaw 仍是生产壳。
+11. 没有 OpenClaw 那种项目分组（SCP、VEC2026、SIDES、独立 Maid）。干员是平铺的 profile 列表。会话只挂在当前选中的 profile 下面，因为列表只拉这一家的 `session.list`。
+12. 右栏不是工作区手稿预览。面包屑不会变成 `manuscript/volume_1/ch07_….md` 这种路径。正文是恢复出的会话记录。
+13. 没有「完全交付」，也没有模型名页脚。窗口红绿灯是 Electron 壳，不画在插件里。
+14. 英文文案保持锁定。Goal 条不会把 4/5 标成已完成；完成只跟步骤或 goal status 走。
 
 ## 色态（已定）
 
@@ -71,7 +77,7 @@
 ### 壳与密度
 
 - [x] 三栏 Control 密度（信息密度优先，不是玩具化留白）
-- [x] 侧栏字号与行高比正文收紧半档（12.5px / 1.3，正文 14px / 1.5）
+- [x] 侧栏字号与行高比正文收紧半档（侧栏 12px / 1.3，正文 13px / 1.45；阅读器正文 15px / 1.75）
 - [x] @ 展开时，Goal / progress 仍在顶栏
 - [x] 空态诚实文案：`No goal` / `No log` / `No checklist`
 - [x] 无 `Sample` 徽章抢焦点
@@ -131,4 +137,4 @@ P4 之前 OpenClaw 仍为生产壳。切换默认入口须走企划书 §9。
 - 截图与录屏（本环境没有 Electron 对照）
 - busy / idle / online、Goal 强调色、「略亮于强调色」作为规格的 hex
 - 8px pip 与约 74% 黑描边之外的精确描边 hex
-- 像素级动画、灯效、栏宽比例的数值规格（实现用了 248px / 300px，那不是规格）
+- 像素级动画、灯效、栏宽比例的数值规格（实现用了 268px 侧栏，右栏略宽于中栏，那不是规格）

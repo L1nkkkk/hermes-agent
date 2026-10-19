@@ -7,7 +7,6 @@ import {
   type GoalFacts,
   type MaidHold,
   maidMentionChoices,
-  maidMentionTokens,
   type MentionAgent,
   type ProgressCard,
   type ProgressModel,
@@ -66,15 +65,10 @@ export function Desk(props: {
   const target = findMaidMentionTarget(props.composer, props.caret)
   const choices = target ? maidMentionChoices(mentionAgents, target.query) : []
   const candidates = draftCandidates(props.profiles, props.memberIds, props.ownerId)
-  const tokens = maidMentionTokens(props.composer, mentionAgents)
 
   return (
     <section className="atelier-pane atelier-desk" data-atelier-pane="main">
       <header className="atelier-desk__bar">
-        <h1 className="atelier-room-title">{props.room.title}</h1>
-        <ProgressChip hold={props.chipHold} progress={props.progress} />
-      </header>
-      <div className="atelier-room">
         <div className="atelier-room__faces">
           {props.room.members.slice(0, 4).map(member => (
             <button
@@ -89,23 +83,13 @@ export function Desk(props: {
           ))}
         </div>
         <div className="atelier-room__copy">
-          <div className="atelier-room__title">{props.room.title}</div>
+          <h1 className="atelier-room-title">{props.room.title}</h1>
           <div className="atelier-room__meta">
             {props.room.kind === 'group' ? COPY.groupRoom(props.room.members.length) : COPY.privateRoom}
           </div>
         </div>
-        <button
-          aria-expanded={props.pullOpen}
-          className="atelier-draft"
-          data-maid-pull="draft"
-          disabled={candidates.length === 0}
-          onClick={props.onTogglePull}
-          title={candidates.length === 0 ? COPY.draftEmpty : COPY.draftHint}
-          type="button"
-        >
-          {COPY.draftLine}
-        </button>
-      </div>
+        <ProgressChip hold={props.chipHold} progress={props.progress} />
+      </header>
       {props.pullOpen && candidates.length > 0 ? (
         <div className="atelier-draft__menu" role="group">
           <p>{COPY.draftHint}</p>
@@ -135,7 +119,12 @@ export function Desk(props: {
         </div>
       ) : null}
       <div className="atelier-thread">
-        <TaskLog card={props.card} goalHold={props.goalHold} onToggleStep={props.onToggleStep} />
+        <TaskLog
+          card={props.card}
+          goalHold={props.goalHold}
+          onToggleStep={props.onToggleStep}
+          quiet={props.messages.length > 0}
+        />
         {props.messages.map((message, index) => (
           <MessageRow
             faces={props.faces}
@@ -145,6 +134,7 @@ export function Desk(props: {
           />
         ))}
       </div>
+      <GoalStrip goal={props.goal} hold={props.chipHold} progress={props.progress} />
       <form
         className="atelier-composer"
         onSubmit={event => {
@@ -177,11 +167,17 @@ export function Desk(props: {
           value={props.composer}
         />
         <div className="atelier-composer__bar">
-          <span className={tokens.length > 0 ? 'atelier-draft-text is-filled' : 'atelier-draft-text'}>
-            {props.goal?.objective
-              ? COPY.goalLine(props.progress.target || props.goal.objective, STATUS[props.progress.tone])
-              : COPY.noGoal}
-          </span>
+          <button
+            aria-expanded={props.pullOpen}
+            className="atelier-draft"
+            data-maid-pull="draft"
+            disabled={candidates.length === 0}
+            onClick={props.onTogglePull}
+            title={candidates.length === 0 ? COPY.draftEmpty : COPY.draftHint}
+            type="button"
+          >
+            {COPY.draftLine}
+          </button>
           <button type="submit">{COPY.send}</button>
         </div>
         <StepAdd onAdd={props.onAddStep} />
@@ -204,7 +200,7 @@ function ProgressChip(props: { progress: ProgressModel; hold: MaidHold | null })
       role="status"
     >
       <Presence tone={tone} />
-      <span>{label}</span>
+      {props.progress.total > 0 ? null : <span className="atelier-progress__label">{label}</span>}
       {props.progress.total > 0 ? (
         <span className="atelier-progress__fraction">
           {COPY.process(props.progress.completed, props.progress.total)}
@@ -214,18 +210,58 @@ function ProgressChip(props: { progress: ProgressModel; hold: MaidHold | null })
   )
 }
 
+function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hold: MaidHold | null }) {
+  const empty = props.progress.source === 'empty' && !props.goal?.objective.trim()
+  const tone: PresenceTone = props.hold ?? (empty ? 'unknown' : TONE[props.progress.tone])
+  const target = props.goal?.objective.trim() || props.progress.target
+  const sentence = target ? COPY.goalLine(target, STATUS[props.progress.tone]) : COPY.noGoal
+  const fraction = props.progress.total > 0
+  const width = fraction ? Math.round((props.progress.completed / props.progress.total) * 100) : 0
+
+  return (
+    <div aria-hidden="true" className="atelier-goalstrip" data-tone={tone}>
+      <div className="atelier-goalstrip__row">
+        <span className="atelier-goalstrip__goal">{sentence}</span>
+        {fraction ? (
+          <span className="atelier-goalstrip__fraction">
+            {COPY.process(props.progress.completed, props.progress.total)}
+          </span>
+        ) : null}
+      </div>
+      {fraction ? (
+        <div className="atelier-goalstrip__track">
+          <span className="atelier-goalstrip__fill" style={{ width: `${width}%` }} />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function TaskLog(props: {
   card: ProgressCard | null
   goalHold: MaidHold | null
+  quiet: boolean
   onToggleStep: (index: number) => void
 }) {
   const steps = props.card?.steps.filter(step => step.step.trim()) ?? []
   const log = firstLine(props.card?.markdown)
 
+  if (!log && steps.length === 0) {
+    if (props.quiet) {
+      return null
+    }
+
+    return (
+      <section aria-label={COPY.workQueue} className="atelier-log">
+        <p>{COPY.noLog}</p>
+        <p data-empty="checklist">{COPY.noChecklist}</p>
+      </section>
+    )
+  }
+
   return (
     <section aria-label={COPY.workQueue} className="atelier-log">
-      <p>{log || COPY.noLog}</p>
-      {steps.length === 0 ? <p data-empty="checklist">{COPY.noChecklist}</p> : null}
+      {log ? <p>{log}</p> : null}
       {steps.length > 0 ? (
         <ul>
           {steps.map((step, index) => (

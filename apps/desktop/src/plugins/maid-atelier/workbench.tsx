@@ -211,7 +211,7 @@ export function AtelierWorkbench(props: {
         pullOpen={pullOpen}
         room={room}
       />
-      <Reader markdown={readerBody} title={readerTitle} />
+      <Reader crumb={readerTitle ? (owner?.name ?? undefined) : undefined} markdown={readerBody} title={readerTitle} />
     </div>
   )
 }
