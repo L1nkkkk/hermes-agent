@@ -6,16 +6,24 @@ export type Workflow = {
   memberIds: string[]
 }
 
+/** Local nav group. Profile ids only — not a room and not another profile's sessions. */
+export type MaidGroup = {
+  id: string
+  title: string
+  profileIds: string[]
+}
+
 export type DeskRecords = {
   children: Record<string, string>
   workflows: Workflow[]
+  groups: MaidGroup[]
   faces: Record<string, number>
   members: Record<string, string[]>
 }
 
 const KEY = 'desk'
 
-const EMPTY: DeskRecords = { children: {}, workflows: [], faces: {}, members: {} }
+const EMPTY: DeskRecords = { children: {}, workflows: [], groups: [], faces: {}, members: {} }
 
 export function readDesk(storage: PluginStorage): DeskRecords {
   const value = storage.get(KEY, EMPTY)
@@ -29,6 +37,7 @@ export function readDesk(storage: PluginStorage): DeskRecords {
   return {
     children: stringMap(record.children),
     workflows: Array.isArray(record.workflows) ? record.workflows.flatMap(parseWorkflow) : [],
+    groups: Array.isArray(record.groups) ? record.groups.flatMap(parseGroup) : [],
     faces: numberMap(record.faces),
     members: stringListMap(record.members)
   }
@@ -56,6 +65,22 @@ function parseWorkflow(value: unknown): Workflow[] {
   }
 
   return [{ id, title, memberIds: Array.isArray(record.memberIds) ? record.memberIds.filter(isString) : [] }]
+}
+
+function parseGroup(value: unknown): MaidGroup[] {
+  if (!value || typeof value !== 'object') {
+    return []
+  }
+
+  const record = value as Partial<MaidGroup>
+  const id = typeof record.id === 'string' ? record.id : ''
+  const title = typeof record.title === 'string' ? record.title.trim() : ''
+
+  if (!id || !title) {
+    return []
+  }
+
+  return [{ id, title, profileIds: Array.isArray(record.profileIds) ? record.profileIds.filter(isString) : [] }]
 }
 
 function stringMap(value: unknown): Record<string, string> {

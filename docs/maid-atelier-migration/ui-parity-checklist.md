@@ -22,7 +22,8 @@
 - 群房里第一个指向其他在房干员的 `@` 会 `prompt.submit` 到对方 profile。房间会话不再收这一轮。提示：`Sent this turn to {name}. The reply stays in that agent's session.` 建不了会话时改走对方主会话，文案改成 main 那一句。
 - 小圆头像是插件内打包的 MyGO!!!!! / Ave Mujica 脸部 WebP。没存过的 profile 用 id 哈希落在固定一张脸上，换脸条按序号循环。换脸条在房间标题下面，不盖标题，也不盖侧栏名字。侧栏行上的圆脸约 20px，忙闲点叠在脸的右下角。
 - 中栏顶上保留进度灯。输入框上方另有一条 Goal 条：有目标时写 `Goal {objective} · {status}`，只有插件步骤时才写 `Process completed/total` 并画进度条。没有步骤就不画分数。
-- 右栏路径是当前 profile 名加会话标题，不是工作区文件路径。章节标题用阅读器一级标题色。
+- 左栏两层，都不是跨 profile 房间。插件存储里的 Groups 只存 profile id。选中的干员下面，`projects.tree` 点名了已加载会话就按那个项目收拢；否则按该会话自己的 `git_repo_root` 或 `cwd` 收拢。没有路径的会话保持平铺。其他 profile 的 `session.list` 只用来画忙闲点，会话标题不进树，记录不合并。
+- 右栏面包屑是网关已经报出的路径末三段：resume 的 `info.project.primary_path`，否则 `info.cwd`，否则列表上的 `git_repo_root` / `cwd`。标题像文件（`chNN_` 或 `.md`）才接在最后。没有路径就只显示标题，不编 `manuscript/` 目录。正文仍是恢复出的会话记录。章节标题用阅读器一级标题色。
 - @ 气泡左条 2px，`color-mix(white 24%, accent)`。阅读器一级标题和 Goal 强调色用同一实现色。
 
 ### 残留（过不去或未验）
@@ -37,8 +38,8 @@
 8. 文案只有英文，跟 OpenClaw 的英文字符串锁在一起。
 9. 没有活网关端到端，也没有 Electron 里的肉眼对照。管理员主观「是同一工台」不勾。
 10. P4 未做。OpenClaw 仍是生产壳。
-11. 没有 OpenClaw 那种项目分组（SCP、VEC2026、SIDES、独立 Maid）。干员是平铺的 profile 列表。会话只挂在当前选中的 profile 下面，因为列表只拉这一家的 `session.list`。
-12. 右栏不是工作区手稿预览。面包屑不会变成 `manuscript/volume_1/ch07_….md` 这种路径。正文是恢复出的会话记录。
+11. 项目树只覆盖当前选中 profile 已经加载的会话。`projects.tree` 失败，或没有点名这些会话时，退回该会话自己的 cwd / `git_repo_root`。本地分组是工台自己的 profile 名单，不是 OpenClaw 的 SCP / VEC 房间。其他 profile 只为忙闲点读 `session.list`，标题不进树，记录不合并。
+12. 插件 SDK 没有安全的工作区读文件口。面包屑可以显示网关已经报出的路径，正文仍是 `session.resume` 转成的 Markdown。不读磁盘上的 `.md`，也不刮 `/api/files/read`。没有路径时不编一套手稿目录。
 13. 没有「完全交付」，也没有模型名页脚。窗口红绿灯是 Electron 壳，不画在插件里。
 14. 英文文案保持锁定。Goal 条不会把 4/5 标成已完成；完成只跟步骤或 goal status 走。
 

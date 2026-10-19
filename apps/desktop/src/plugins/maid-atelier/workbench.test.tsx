@@ -212,8 +212,11 @@ describe('atelier workbench', () => {
     fireEvent.click(manuscript)
 
     await waitFor(() => {
-      expect(view.container.querySelector('.atelier-reader__path')?.textContent).toContain('ch01_deploy.md')
-      expect(view.container.querySelector('.atelier-reader__path')?.textContent).toContain('Harper')
+      const path = view.container.querySelector('.atelier-reader__path')
+
+      expect(path?.textContent).toContain('ch01_deploy.md')
+      expect(path?.textContent).not.toContain('Harper')
+      expect(path?.textContent).not.toContain('manuscript')
       expect(view.container.querySelector('.atelier-goalstrip')?.textContent).toContain('Ship the chapter')
       expect(view.container.querySelector('.atelier-goalstrip')?.textContent).not.toMatch(/Process \d/)
       expect(view.container.querySelector('.atelier-reader__h1')).toBeTruthy()
@@ -239,5 +242,128 @@ describe('atelier workbench', () => {
 
     expect(within(rail as HTMLElement).queryByText('Harper')).toBeNull()
     expect(within(rail as HTMLElement).getByText('Notes')).toBeTruthy()
+  })
+
+  it('nests the selected profile sessions under projects.tree and crumbs the real cwd', async () => {
+    const view = render(
+      <AtelierWorkbench
+        gateway={createGateway(
+          scripted(async (profileRow, method) => {
+            if (method === 'profiles.list') {
+              return { profiles: [{ name: 'harper', display_name: 'Harper' }] }
+            }
+
+            if (method === 'session.list' && profileRow.id === 'harper') {
+              return {
+                sessions: [
+                  {
+                    id: 'deploy',
+                    title: 'ch01_deploy.md',
+                    preview: '',
+                    started_at: 1,
+                    cwd: '/work/hp02-rewrite/manuscript/volume_1'
+                  },
+                  { id: 'scratch', title: 'Scratch', preview: '', started_at: 1 }
+                ]
+              }
+            }
+
+            if (method === 'projects.tree') {
+              return {
+                projects: [
+                  {
+                    id: 'hp02',
+                    label: 'hp02-rewrite',
+                    path: '/work/hp02-rewrite',
+                    sessionIds: ['deploy']
+                  }
+                ]
+              }
+            }
+
+            if (method === 'session.resume') {
+              return {
+                session_id: 'rt-deploy',
+                stored_session_id: 'deploy',
+                messages: [{ role: 'assistant', name: 'Harper', text: 'chapter body' }],
+                running: false,
+                info: { cwd: '/work/hp02-rewrite/manuscript/volume_1' }
+              }
+            }
+
+            return {}
+          })
+        )}
+        gatewayOpen
+        notify={vi.fn()}
+        storage={storage()}
+      />
+    )
+
+    const project = await waitFor(() => {
+      const node = view.container.querySelector('[data-atelier-project="hp02-rewrite"]')
+
+      if (!node) {
+        throw new Error('project missing')
+      }
+
+      return node
+    })
+
+    expect(within(project as HTMLElement).getByText('ch01_deploy.md')).toBeTruthy()
+    expect(project.querySelector('.atelier-session')).toBeTruthy()
+    expect(project.textContent).not.toContain('Scratch')
+
+    const manuscript = view.container.querySelector('[data-manuscript="true"]')
+
+    if (!manuscript) {
+      throw new Error('manuscript missing')
+    }
+
+    fireEvent.click(manuscript)
+
+    await waitFor(() => {
+      const path = view.container.querySelector('.atelier-reader__path')
+
+      expect(path?.textContent).toContain('hp02-rewrite')
+      expect(path?.textContent).toContain('manuscript')
+      expect(path?.textContent).toContain('volume_1')
+      expect(path?.textContent).toContain('ch01_deploy.md')
+      expect(path?.textContent).not.toContain('Harper')
+      expect(path?.getAttribute('title')).toBe('/work/hp02-rewrite/manuscript/volume_1/ch01_deploy.md')
+    })
+  })
+
+  it('keeps a local group as a profile list and does not load the other profile sessions', async () => {
+    const calls: string[] = []
+    const view = render(<AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />)
+
+    await screen.findByRole('checkbox', { name: 'In room Notes' })
+    fireEvent.change(screen.getByLabelText('Group name'), { target: { value: 'SCP' } })
+    fireEvent.click(screen.getByRole('button', { name: 'New group' }))
+
+    const group = await waitFor(() => {
+      const node = view.container.querySelector('[data-atelier-group]')
+
+      if (!node) {
+        throw new Error('group missing')
+      }
+
+      return node
+    })
+
+    expect(within(group as HTMLElement).getByText('Harper')).toBeTruthy()
+    expect(within(group as HTMLElement).queryByText('Notes')).toBeNull()
+    expect(within(group as HTMLElement).getByText('ch01_deploy.md')).toBeTruthy()
+
+    const notes = screen.getByText('Notes').closest('[data-atelier-profile]')
+
+    expect(notes?.closest('[data-atelier-group]')).toBeNull()
+    expect(notes?.querySelector('.atelier-session')).toBeNull()
+    expect(calls.some(call => call.startsWith('notes:projects.tree'))).toBe(false)
+    expect(calls.some(call => call.startsWith('notes:session.resume'))).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse SCP' }))
+    expect(within(group as HTMLElement).queryByText('Harper')).toBeNull()
   })
 })

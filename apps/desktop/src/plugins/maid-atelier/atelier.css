@@ -215,6 +215,53 @@
   border-left: 1px solid #2a2e36;
 }
 
+.atelier-twist {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--atelier-muted);
+  cursor: pointer;
+}
+
+.atelier-twist::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  margin-left: 4px;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-left: 4px solid currentColor;
+}
+
+.atelier-twist[data-open='true']::before {
+  margin-top: 2px;
+  margin-left: 2px;
+  border-top: 4px solid currentColor;
+  border-right: 3px solid transparent;
+  border-bottom: 0;
+  border-left: 3px solid transparent;
+}
+
+.atelier-project .atelier-session {
+  padding-left: 16px;
+}
+
+.atelier-group-pick {
+  flex: none;
+  max-width: 88px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--atelier-muted);
+  font: inherit;
+  font-size: 10px;
+}
+
 .atelier-member {
   display: flex;
   flex: none;
