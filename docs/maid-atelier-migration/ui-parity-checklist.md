@@ -20,7 +20,7 @@
 - Work 勾选经插件存储写入再读回。对不上或写入抛错则不更新，并提示 `Could not save this step on the progress card.` 分数只在有步骤时出现（`Process completed/total`）。不拿 `turns_used` / `max_turns` 当进度。
 - 步骤文字不是编辑框。标题像 `chNN_` 或 `.md` 的会话以手稿打开，进右栏阅读，不冒充步骤。
 - 群房里第一个指向其他在房干员的 `@` 会 `prompt.submit` 到对方 profile。房间会话不再收这一轮。提示：`Sent this turn to {name}. The reply stays in that agent's session.` 建不了会话时改走对方主会话，文案改成 main 那一句。
-- 小圆头像是插件内的 SVG。换脸条在房间标题下面，不盖标题，也不盖侧栏名字。
+- 小圆头像是插件内打包的 MyGO!!!!! / Ave Mujica 脸部 WebP。没存过的 profile 用 id 哈希落在固定一张脸上，换脸条按序号循环。换脸条在房间标题下面，不盖标题，也不盖侧栏名字。
 - @ 气泡左条 2px，`color-mix(white 24%, accent)`。阅读器一级标题和 Goal 强调色用同一实现色。
 
 ### 残留（过不去或未验）
@@ -30,7 +30,7 @@
 3. 「In room」是工台自己的勾选记录，不是 OpenClaw 的 session-child 图。Draft line 不写这张记录。房主永远在房里。
 4. 插件 SDK 没有安全的读文件口。右栏渲染的是恢复出来的会话记录（转成 Markdown），加上空态。它不是 OpenClaw 的工作区文件预览，插件也不去刮 `/api/files/read`。
 5. busy `#f59e0b`、idle `#7ec8c3`、online `#6fbf8a`、attention `#f87171`、Goal / 阅读器一级标题 `#60a5fa`、壳色（背景 `#1c1d21` 等）是实现选择。pending / blocked 才是锁定值。OpenClaw 自己的 pip CSS 仍把 busy 指到 `--info`；这里按清单的三分走，不跟那条 CSS。
-6. 头像是原创 SVG，不是 OpenClaw 的 `/maid-avatars/*.jpg`。
+6. 头像是插件内的角色脸部图，不是 OpenClaw 的 `/maid-avatars/*.jpg`，也不是外链。
 7. 记录刷新是每 4 秒 `session.resume`，不是 `message.delta` 流。
 8. 文案只有英文，跟 OpenClaw 的英文字符串锁在一起。
 9. 没有活网关端到端，也没有 Electron 里的肉眼对照。管理员主观「是同一工台」不勾。
@@ -78,7 +78,7 @@
 
 ### 头像
 
-- [x] 仅小圆二次元头像（原创 SVG，不是 OpenClaw jpg）
+- [x] 仅小圆二次元头像（插件内 MyGO!!!!! / Ave Mujica 脸部 WebP，不是 OpenClaw jpg）
 - [x] 换脸条不遮住房间标题，也不遮住侧栏名字
 - [x] 禁止贴纸、换装剧场、大号角色扮演装饰
 

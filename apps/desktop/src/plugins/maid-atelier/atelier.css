@@ -159,8 +159,8 @@
 .atelier-mentions img,
 .atelier-faces img,
 .atelier-msg img {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border: 1px solid color-mix(in srgb, var(--atelier-border) 72%, transparent);
   border-radius: 50%;
   object-fit: cover;
@@ -261,6 +261,17 @@
   background: color-mix(in srgb, var(--atelier-elevated) 88%, transparent);
 }
 
+.atelier-faces {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.atelier-faces img {
+  width: 40px;
+  height: 40px;
+}
+
 .atelier-draft__menu p,
 .atelier-draft-text {
   margin: 0;
@@ -319,7 +330,7 @@
 
 .atelier-msg {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 30px minmax(0, 1fr);
   gap: 8px;
   margin: 10px 0;
 }

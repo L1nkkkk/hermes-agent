@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { type AtelierProfile, type AtelierRpc, createGateway } from './gateway'
+import { portraitSrc } from './portraits'
 import { AtelierWorkbench } from './workbench'
 
 function scripted(handler: (profile: AtelierProfile, method: string) => Promise<unknown>): AtelierRpc {
@@ -84,7 +85,9 @@ describe('atelier workbench', () => {
   it('shows the three columns and the honest empty copy', async () => {
     render(<AtelierWorkbench gateway={gatewayFor([])} gatewayOpen notify={vi.fn()} storage={storage()} />)
 
-    expect(await screen.findByRole('button', { name: "Change Harper's face" })).toBeTruthy()
+    const face = await screen.findByRole('button', { name: "Change Harper's face" })
+
+    expect(face.querySelector('img')?.getAttribute('src')).toBe(portraitSrc('harper'))
     const view = screen.getByRole('button', { name: "Change Harper's face" }).closest('.atelier')
 
     expect(view?.querySelector('[data-atelier-pane="left"]')).toBeTruthy()
