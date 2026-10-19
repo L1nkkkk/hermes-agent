@@ -13,7 +13,7 @@ import {
   type ProgressModel,
   type Room
 } from './model'
-import { FACE_COUNT, portraitSrc } from './portraits'
+import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
 import type { PresenceTone } from './theme'
 
@@ -120,7 +120,12 @@ export function Desk(props: {
       {props.editingFace ? (
         <div aria-label={COPY.faceTitle} className="atelier-faces" role="group">
           {Array.from({ length: FACE_COUNT }, (_, index) => (
-            <button key={index} onClick={() => props.onPickFace(props.editingFace as string, index)} type="button">
+            <button
+              aria-label={FACE_NAMES[index]}
+              key={index}
+              onClick={() => props.onPickFace(props.editingFace as string, index)}
+              type="button"
+            >
               <img alt="" src={portraitSrc(props.editingFace as string, index)} />
             </button>
           ))}

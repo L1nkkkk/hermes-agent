@@ -1,36 +1,41 @@
-/** Original round faces. Not the OpenClaw jpg set, which is not in this repo. */
+import anon from './faces/anon.webp'
+import mutsumi from './faces/mutsumi.webp'
+import nyamu from './faces/nyamu.webp'
+import raana from './faces/raana.webp'
+import sakiko from './faces/sakiko.webp'
+import soyo from './faces/soyo.webp'
+import taki from './faces/taki.webp'
+import tomori from './faces/tomori.webp'
+import uika from './faces/uika.webp'
+import umiri from './faces/umiri.webp'
 
-const HAIR = ['#2a2422', '#1c2430', '#5c3a32', '#3a3028', '#24282c', '#4a3a30']
-const EYES = ['#243040', '#3a2c24', '#1e2c28', '#1a1c22', '#2a3340', '#3a2824']
+/**
+ * Local round face crops. Not OpenClaw `/maid-avatars` paths.
+ * Order is the face-picker cycle. `hash(id)` picks a slot when none is saved.
+ */
+const FACES = [tomori, anon, taki, soyo, raana, mutsumi, sakiko, umiri, nyamu, uika] as const
+
+export const FACE_NAMES = [
+  'Tomori',
+  'Anon',
+  'Taki',
+  'Soyo',
+  'Rikki',
+  'Mutsumi',
+  'Sakiko',
+  'Umiri',
+  'Nyamu',
+  'Uika'
+] as const
+
+export const FACE_COUNT = FACES.length
 
 export function portraitSrc(id: string, faceIndex?: number): string {
-  const index = normalizeFace(faceIndex ?? hash(id))
-  const hair = HAIR[index] ?? HAIR[0]
-  const eye = EYES[index] ?? EYES[0]
-  const part = index % 2 === 0 ? 24 : 40
-
-  const svg = [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">`,
-    `<rect width="64" height="64" fill="#1c1d21"/>`,
-    `<path d="M8 58c4-16 10-26 24-26s20 10 24 26" fill="${hair}"/>`,
-    `<circle cx="32" cy="30" r="16" fill="#f0d2c0"/>`,
-    `<path d="M16 28c2-14 8-20 16-20s14 6 16 20c-6-6-26-6-32 0z" fill="${hair}"/>`,
-    `<path d="M${part - 6} 14h8l-2 10h-6z" fill="${hair}"/>`,
-    `<circle cx="26" cy="32" r="1.6" fill="${eye}"/>`,
-    `<circle cx="38" cy="32" r="1.6" fill="${eye}"/>`,
-    `<path d="M29 40c2 1.4 4 1.4 6 0" fill="none" stroke="#a87868" stroke-width="1"/>`,
-    `</svg>`
-  ].join('')
-
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+  return FACES[normalizeFace(faceIndex ?? hash(id))]
 }
 
-export const FACE_COUNT = HAIR.length
-
 export function normalizeFace(index: number): number {
-  const count = HAIR.length
-
-  return ((index % count) + count) % count
+  return ((index % FACE_COUNT) + FACE_COUNT) % FACE_COUNT
 }
 
 function hash(id: string): number {
