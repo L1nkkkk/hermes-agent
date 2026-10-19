@@ -1,0 +1,416 @@
+.atelier {
+  --atelier-bg: #1c1d21;
+  --atelier-elevated: #26282e;
+  --atelier-hover: #2c2f36;
+  --atelier-text: #c6c8ce;
+  --atelier-strong: #f3f4f6;
+  --atelier-muted: #9aa1ab;
+  --atelier-border: #32353d;
+  --atelier-accent: #7aa2d0;
+  --atelier-goal: #60a5fa;
+  --atelier-ring: color-mix(in srgb, black 74%, var(--atelier-bg));
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr) 300px;
+  height: 100%;
+  min-height: 0;
+  background: var(--atelier-bg);
+  color: var(--atelier-text);
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.atelier-pane {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+.atelier-rail,
+.atelier-reader {
+  font-size: 12.5px;
+  line-height: 1.3;
+  border-color: color-mix(in srgb, var(--atelier-border) 70%, transparent);
+}
+
+.atelier-rail {
+  border-inline-end: 1px solid var(--atelier-border);
+  padding: 8px 6px 12px;
+}
+
+.atelier-reader {
+  border-inline-start: 1px solid var(--atelier-border);
+  padding: 8px 14px 16px;
+}
+
+.atelier-you,
+.atelier-row,
+.atelier-session,
+.atelier-room {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.atelier-you {
+  padding: 4px 6px 8px;
+}
+
+.atelier-you__name,
+.atelier-room__title,
+.atelier-room-title,
+.atelier-msg__name {
+  color: var(--atelier-strong);
+  font-weight: 650;
+}
+
+.atelier-you__status,
+.atelier-room__meta,
+.atelier-empty,
+.atelier-reader__path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--atelier-muted);
+  font-size: 11px;
+}
+
+.atelier-section {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--atelier-border) 42%, transparent);
+}
+
+.atelier-section h2 {
+  margin: 4px 6px;
+  color: var(--atelier-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.atelier-row,
+.atelier-session,
+.atelier-step,
+.atelier-draft,
+.atelier-composer button,
+.atelier-workflow-save button,
+.atelier-mentions button,
+.atelier-draft__menu button,
+.atelier-faces button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+.atelier-row,
+.atelier-session {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 4px;
+  border-radius: 8px;
+}
+
+.atelier-row__main,
+.atelier-session {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.atelier-row[data-selected='true'],
+.atelier-session[data-selected='true'],
+.atelier-row__main:hover,
+.atelier-session:hover,
+.atelier-step:hover,
+.atelier-draft__menu button:hover,
+.atelier-mentions button:hover {
+  background: color-mix(in srgb, var(--atelier-hover) 78%, var(--atelier-accent));
+}
+
+.atelier-row__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atelier-member {
+  display: flex;
+  flex: none;
+}
+
+.atelier-face,
+.atelier-room__face img,
+.atelier-draft__menu img,
+.atelier-mentions img,
+.atelier-faces img,
+.atelier-msg img {
+  width: 22px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--atelier-border) 72%, transparent);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.atelier-pip {
+  box-sizing: border-box;
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--atelier-ring);
+  border-radius: 50%;
+}
+
+.atelier-desk {
+  display: flex;
+  flex-direction: column;
+  background: var(--atelier-bg);
+}
+
+.atelier-desk__bar,
+.atelier-room,
+.atelier-composer__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.atelier-room-title {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.atelier-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 46%;
+  color: var(--atelier-text);
+  font-size: 12px;
+}
+
+.atelier-progress__fraction {
+  color: var(--atelier-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.atelier-progress[data-source='goal'],
+.atelier-progress[data-source='progress'] {
+  box-shadow: inset 0 1px 0 var(--atelier-goal);
+}
+
+.atelier-room__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.atelier-room__title {
+  font-size: 13px;
+}
+
+.atelier-room__face {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.atelier-draft {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--atelier-elevated) 82%, transparent);
+  color: var(--atelier-muted);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.atelier-draft:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.atelier-draft__menu,
+.atelier-mentions,
+.atelier-faces {
+  display: grid;
+  gap: 2px;
+  margin: 0 12px 8px;
+  padding: 4px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--atelier-elevated) 88%, transparent);
+}
+
+.atelier-draft__menu p,
+.atelier-draft-text {
+  margin: 0;
+  color: var(--atelier-muted);
+  font-size: 11px;
+}
+
+.atelier-draft__menu button,
+.atelier-mentions button,
+.atelier-faces button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.atelier-thread {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 12px;
+}
+
+.atelier-log p,
+.atelier-empty {
+  margin: 4px 0;
+}
+
+.atelier-log button,
+.atelier-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 24px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.atelier-step__box {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--atelier-muted);
+  border-radius: 2px;
+}
+
+.atelier-step[data-done='true'] .atelier-step__box,
+.atelier-log button[aria-checked='true'] {
+  color: var(--atelier-muted);
+  text-decoration: line-through;
+}
+
+.atelier-msg {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.atelier-msg p {
+  margin: 2px 0 0;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--atelier-elevated) 88%, transparent);
+}
+
+.atelier-msg[data-role='user'] p {
+  background: color-mix(in srgb, var(--atelier-elevated) 78%, var(--atelier-accent));
+}
+
+.atelier-msg--mention p {
+  border-inline-start: 2px solid color-mix(in srgb, white 24%, var(--atelier-accent));
+}
+
+.atelier-composer {
+  border-top: 1px solid color-mix(in srgb, var(--atelier-border) 42%, transparent);
+  background: color-mix(in srgb, var(--atelier-elevated) 78%, var(--atelier-bg));
+}
+
+.atelier-composer textarea,
+.atelier-add-step,
+.atelier-workflow-save input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  color: var(--atelier-text);
+  font: inherit;
+  resize: none;
+}
+
+.atelier-composer textarea {
+  min-height: 64px;
+  padding: 8px 12px 0;
+}
+
+.atelier-add-step,
+.atelier-workflow-save input {
+  padding: 4px 12px 8px;
+  color: var(--atelier-muted);
+  font-size: 12px;
+}
+
+.atelier-composer__bar {
+  justify-content: space-between;
+}
+
+.atelier-composer__bar button,
+.atelier-workflow-save button {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--atelier-elevated) 82%, transparent);
+  cursor: pointer;
+}
+
+.atelier-workflow-save {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.atelier-reader__h1 {
+  margin: 12px 0 8px;
+  color: var(--atelier-goal);
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.atelier-reader__body h2 {
+  margin: 14px 0 4px;
+  color: var(--atelier-strong);
+  font-size: 14px;
+}
+
+.atelier-reader__body p,
+.atelier-reader__body li,
+.atelier-reader__body pre {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+}
+
+.atelier-refine {
+  color: var(--atelier-muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
