@@ -5,9 +5,17 @@ import type { MaidGroup, Workflow } from './desk-store'
 import type { AtelierProfile, AtelierProject, AtelierSession } from './gateway'
 import { type MaidHold, maidManuscript, type ProgressCard } from './model'
 import { groupSessions, type SessionBucket } from './paths'
+import { Emoji, Mark, type MarkName } from './marks'
 import { portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
-import type { PresenceTone } from './theme'
+import { TONE_EMOJI, type PresenceTone } from './theme'
+
+const SECTION_EMOJI = {
+  groups: '⭐',
+  maid: '👤',
+  queue: '📋',
+  workflow: '🔀'
+} as const
 
 const LOUD: ReadonlySet<PresenceTone> = new Set(['busy', 'pending', 'blocked', 'attention'])
 
@@ -80,7 +88,7 @@ export function Rail(props: {
   return (
     <aside className="atelier-pane atelier-rail" data-atelier-pane="left">
       <label className="atelier-search">
-        <SearchMark />
+        <Mark name="search" />
         <input
           aria-label={COPY.search}
           onChange={event => setQuery(event.target.value)}
@@ -90,7 +98,7 @@ export function Rail(props: {
         />
       </label>
       <div className="atelier-rail__scroll">
-        <Section title={COPY.groups}>
+        <Section emoji={SECTION_EMOJI.groups} mark="groups" title={COPY.groups}>
           {props.groups.map(group => (
             <GroupBranch
               branch={branch}
@@ -104,15 +112,17 @@ export function Rail(props: {
           ))}
           <GroupSave onSave={props.onSaveGroup} />
         </Section>
-        <Section title={COPY.maids}>
+        <Section emoji={SECTION_EMOJI.maid} mark="maid" title={COPY.maids}>
           {loose.length === 0 && props.profiles.length === 0 ? (
-            <Empty>{props.gatewayOpen ? COPY.noSessions : COPY.gatewayDown}</Empty>
+            <Empty emoji={props.gatewayOpen ? '📭' : TONE_EMOJI.blocked} mark={props.gatewayOpen ? 'maid' : 'plug'}>
+              {props.gatewayOpen ? COPY.noSessions : COPY.gatewayDown}
+            </Empty>
           ) : null}
           {loose.map(profile => (
             <ProfileBranch key={profile.id} profile={profile} {...branch} />
           ))}
         </Section>
-        <Section title={COPY.workQueue}>
+        <Section emoji={SECTION_EMOJI.queue} mark="queue" title={COPY.workQueue}>
           <WorkSteps
             card={props.card}
             goalHold={props.goalHold}
@@ -121,8 +131,12 @@ export function Rail(props: {
             onToggleStep={props.onToggleStep}
           />
         </Section>
-        <Section title={COPY.workflows}>
-          {props.workflows.length === 0 ? <Empty>{COPY.noWorkflows}</Empty> : null}
+        <Section emoji={SECTION_EMOJI.workflow} mark="workflow" title={COPY.workflows}>
+          {props.workflows.length === 0 ? (
+            <Empty emoji={SECTION_EMOJI.workflow} mark="workflow">
+              {COPY.noWorkflows}
+            </Empty>
+          ) : null}
           {props.workflows.map(workflow => (
             <button
               className="atelier-session"
@@ -130,6 +144,7 @@ export function Rail(props: {
               onClick={() => props.onOpenWorkflow(workflow)}
               type="button"
             >
+              <Mark name="workflow" />
               <span className="atelier-row__name">{workflow.title}</span>
             </button>
           ))}
@@ -137,10 +152,12 @@ export function Rail(props: {
         </Section>
       </div>
       <header className="atelier-you">
-        <Face faces={props.faces} id="user" name={props.youName} tone={props.gatewayOpen ? 'online' : 'unknown'} />
+        <Face faces={props.faces} id="user" name={props.youName} tone={props.gatewayOpen ? 'online' : 'blocked'} />
         <div>
           <div className="atelier-you__name">{props.youName}</div>
-          <div className="atelier-you__status">
+          <div className="atelier-you__status" data-tone={props.gatewayOpen ? 'online' : 'blocked'}>
+            <Presence named={false} tone={props.gatewayOpen ? 'online' : 'blocked'} />
+            <Emoji symbol={props.gatewayOpen ? TONE_EMOJI.online : TONE_EMOJI.blocked} />
             <span>{props.gatewayOpen ? COPY.online : COPY.offline}</span>
           </div>
         </div>
@@ -190,6 +207,7 @@ function GroupBranch(props: {
     <div className="atelier-branch" data-atelier-group={props.group.id}>
       <div className="atelier-row">
         <Twist expanded={expanded} label={props.group.title} onToggle={() => props.onFold(props.group.id, expanded)} />
+        <Mark name="groups" />
         <span className="atelier-row__name">{props.group.title}</span>
         <span className="atelier-row__age">{members.length}</span>
       </div>
@@ -214,7 +232,9 @@ function ProfileBranch(props: BranchProps) {
             label={props.profile.name}
             onToggle={() => props.onFold(props.profile.id, expanded)}
           />
-        ) : null}
+        ) : (
+          <span aria-hidden="true" className="atelier-gutter" />
+        )}
         <button className="atelier-row__main" onClick={() => props.onSelectProfile(props.profile.id)} type="button">
           <Face
             faces={props.faces}
@@ -223,7 +243,9 @@ function ProfileBranch(props: BranchProps) {
             tone={props.presence[props.profile.id] ?? 'unknown'}
           />
           <span className="atelier-row__name">{props.profile.name}</span>
-          {selected && props.sessions.length > 0 ? <span className="atelier-row__age">{props.sessions.length}</span> : null}
+          {selected && props.sessions.length > 0 ? (
+            <span className="atelier-row__age">{props.sessions.length}</span>
+          ) : null}
         </button>
         {selected && props.groups.length > 0 ? (
           <select
@@ -276,7 +298,11 @@ function SessionTree(props: {
 }) {
   return (
     <div aria-label={COPY.sessions} className="atelier-tree">
-      {props.sessions.length === 0 ? <Empty>{COPY.noSessions}</Empty> : null}
+      {props.sessions.length === 0 ? (
+        <Empty emoji="📭" mark="file">
+          {COPY.noSessions}
+        </Empty>
+      ) : null}
       {props.grouped.buckets.map(bucket => (
         <ProjectNode
           bucket={bucket}
@@ -313,6 +339,7 @@ function ProjectNode(props: {
     <div className="atelier-project" data-atelier-project={props.bucket.label}>
       <div className="atelier-row">
         <Twist expanded={props.expanded} label={props.bucket.label} onToggle={props.onFold} />
+        <Mark name="folder" />
         <span className="atelier-row__name">{props.bucket.label}</span>
         <span className="atelier-row__age">{props.bucket.sessions.length}</span>
       </div>
@@ -348,6 +375,7 @@ function SessionRow(props: {
       type="button"
     >
       <Presence tone={tone} />
+      <Mark name="file" />
       <span className="atelier-row__name">{props.session.title}</span>
       {LOUD.has(tone) ? <span className="atelier-row__meta">{TONE_LABEL[tone]}</span> : null}
       {age ? <span className="atelier-row__age">{age}</span> : null}
@@ -364,7 +392,9 @@ function Twist(props: { expanded: boolean; label: string; onToggle: () => void }
       data-open={props.expanded ? 'true' : 'false'}
       onClick={props.onToggle}
       type="button"
-    />
+    >
+      <Mark name={props.expanded ? 'caret-down' : 'caret-right'} />
+    </button>
   )
 }
 
@@ -384,7 +414,10 @@ function GroupSave(props: { onSave: (title: string) => void }) {
       }}
     >
       <input aria-label={COPY.groupName} name="title" placeholder={COPY.groupName} />
-      <button type="submit">{COPY.newGroup}</button>
+      <button type="submit">
+        <Emoji symbol="➕" />
+        {COPY.newGroup}
+      </button>
     </form>
   )
 }
@@ -489,7 +522,11 @@ function WorkSteps(props: {
   const steps = props.card?.steps.filter(step => step.step.trim()) ?? []
 
   if (steps.length === 0 && props.manuscripts.length === 0) {
-    return <Empty>{COPY.noChecklist}</Empty>
+    return (
+      <Empty emoji={SECTION_EMOJI.queue} mark="queue">
+        {COPY.noChecklist}
+      </Empty>
+    )
   }
 
   return (
@@ -505,7 +542,9 @@ function WorkSteps(props: {
             role="checkbox"
             type="button"
           >
-            <span aria-hidden="true" className="atelier-step__box" />
+            <span aria-hidden="true" className="atelier-step__box">
+              {step.status === 'completed' ? <Mark name="check" /> : null}
+            </span>
             <StepPresence goalHold={props.goalHold} status={step.status} />
             <span>{step.step}</span>
           </button>
@@ -519,6 +558,7 @@ function WorkSteps(props: {
             onClick={() => props.onOpenManuscript(item.id)}
             type="button"
           >
+            <Mark name="file" />
             <span>{item.label}</span>
             {maidManuscript(item.label) ? <span className="atelier-refine">{COPY.refine}</span> : null}
           </button>
@@ -544,7 +584,10 @@ function WorkflowSave(props: { onSave: (title: string) => void }) {
       }}
     >
       <input aria-label={COPY.workflowName} name="title" placeholder={COPY.workflowName} />
-      <button type="submit">{COPY.saveWorkflow}</button>
+      <button type="submit">
+        <Emoji symbol="➕" />
+        {COPY.saveWorkflow}
+      </button>
     </form>
   )
 }
@@ -558,26 +601,37 @@ function Face(props: { id: string; name: string; faces: Readonly<Record<string, 
   )
 }
 
-function SearchMark() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 16 16">
-      <circle cx="7" cy="7" fill="none" r="4.25" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M10.4 10.4 L13.5 13.5" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  )
-}
+function Section(props: { title: string; mark: MarkName; emoji: string; children: ReactNode }) {
+  const [open, setOpen] = useState(true)
 
-function Section(props: { title: string; children: ReactNode }) {
   return (
-    <section className="atelier-section">
-      <h2>{props.title}</h2>
-      {props.children}
+    <section className="atelier-section" data-open={open ? 'true' : 'false'}>
+      <h2>
+        <button
+          aria-expanded={open}
+          className="atelier-section__toggle"
+          onClick={() => setOpen(current => !current)}
+          type="button"
+        >
+          <Mark name={open ? 'caret-down' : 'caret-right'} />
+          <Mark name={props.mark} />
+          <span>{props.title}</span>
+          <Emoji symbol={props.emoji} trail />
+        </button>
+      </h2>
+      {open ? props.children : null}
     </section>
   )
 }
 
-function Empty(props: { children: string }) {
-  return <p className="atelier-empty">{props.children}</p>
+function Empty(props: { mark: MarkName; emoji: string; children: string }) {
+  return (
+    <p className="atelier-empty">
+      <Mark name={props.mark} />
+      <Emoji symbol={props.emoji} />
+      <span>{props.children}</span>
+    </p>
+  )
 }
 
 function sessionTone(busy: boolean | null): PresenceTone {

@@ -97,6 +97,52 @@ describe('atelier workbench', () => {
     expect(screen.getAllByText('No log').length).toBeGreaterThan(0)
     expect(screen.getAllByText('No checklist').length).toBeGreaterThan(0)
     expect(screen.queryByText(/sample/i)).toBeNull()
+    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark').length).toBe(8)
+    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark--caret-down').length).toBe(4)
+    expect(view?.querySelector('.atelier-you img')).toBeTruthy()
+    expect(view?.querySelector('.atelier-you .atelier-pip')).toBeTruthy()
+    expect(view?.querySelector('.atelier-goalstrip__badge .atelier-mark--goal')).toBeTruthy()
+    expect(view?.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
+    expect(view?.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe('#6fbf8a')
+    expect(view?.querySelector('.atelier-room__face[data-kind="user"]')?.getAttribute('data-tone')).toBe('online')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-pending')).toBe('#5b8def')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-blocked')).toBe('#d4546a')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-busy')).toBe('#f59e0b')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-online')).toBe('#6fbf8a')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-idle')).toBe('#7ec8c3')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-star')).toBe('#d7b56a')
+    expect(view?.querySelector('.atelier-goalstrip__fraction .atelier-mark--process')).toBeTruthy()
+    expect(view?.querySelector('.atelier-reader__tab .atelier-mark--file')).toBeTruthy()
+    expect(view?.querySelector('.atelier-reader__toolbar .atelier-mark--copy')).toBeTruthy()
+    expect((view?.querySelector('.atelier-reader__source') as HTMLButtonElement | null)?.disabled).toBe(true)
+    expect(view?.querySelector('.atelier-model .atelier-mark--chip')).toBeTruthy()
+    expect(view?.textContent).toContain('⭐')
+    expect(view?.textContent).toContain('🎯')
+    expect(view?.textContent).toContain('✨')
+    expect(view?.textContent).toContain('📄')
+    expect(view?.querySelectorAll('.atelier-emoji').length).toBeGreaterThanOrEqual(10)
+    expect(view?.querySelector('.atelier-member input')).toBeTruthy()
+  })
+
+  it('paints offline face rings blocked, not online', async () => {
+    const view = render(
+      <AtelierWorkbench gateway={gatewayFor([])} gatewayOpen={false} notify={vi.fn()} storage={storage()} />
+    )
+    const face = view.container.querySelector('.atelier-room__face[data-kind="user"]')
+
+    expect(view.container.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe(
+      '#d4546a'
+    )
+    expect(view.container.querySelector('.atelier-you__status')?.getAttribute('data-tone')).toBe('blocked')
+    expect(view.container.querySelector('.atelier-you__status .atelier-pip')?.getAttribute('data-fill')).toBe('#d4546a')
+    expect(view.container.querySelector('.atelier-you__status')?.textContent).toContain('Offline')
+    expect(view.container.querySelector('.atelier-you__status')?.textContent).toContain('⛔')
+    expect(view.container.querySelector('.atelier-you__status')?.textContent).not.toContain('🟢')
+    expect(face?.getAttribute('data-tone')).toBe('blocked')
+    expect(face?.getAttribute('style')).toContain('#d4546a')
+    expect(face?.getAttribute('style')).not.toContain('#6fbf8a')
+    expect(view.container.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
+    expect(view.container.querySelector('.atelier-mark--plug')).toBeTruthy()
   })
 
   it('drafts a pull line without inviting the agent', async () => {
@@ -311,6 +357,9 @@ describe('atelier workbench', () => {
     })
 
     expect(within(project as HTMLElement).getByText('ch01_deploy.md')).toBeTruthy()
+    expect(project.querySelector('.atelier-session .atelier-mark--file')).toBeTruthy()
+    expect(project.querySelector('.atelier-mark--folder')).toBeTruthy()
+    expect(project.querySelector('.atelier-twist .atelier-mark')).toBeTruthy()
     expect(project.querySelector('.atelier-session')).toBeTruthy()
     expect(project.textContent).not.toContain('Scratch')
 
@@ -330,13 +379,19 @@ describe('atelier workbench', () => {
       expect(path?.textContent).toContain('volume_1')
       expect(path?.textContent).toContain('ch01_deploy.md')
       expect(path?.textContent).not.toContain('Harper')
+      expect(path?.textContent).not.toContain('Copy path')
       expect(path?.getAttribute('title')).toBe('/work/hp02-rewrite/manuscript/volume_1/ch01_deploy.md')
+      expect(view.container.querySelector('.atelier-reader__tab')?.textContent).toContain('ch01_deploy.md')
+      expect(view.container.querySelector('.atelier-reader__tab')?.textContent).toContain('📝')
+      expect(view.container.querySelector('.atelier-reader__copy')?.textContent).toBe('Copy path')
     })
   })
 
   it('keeps a local group as a profile list and does not load the other profile sessions', async () => {
     const calls: string[] = []
-    const view = render(<AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />)
+    const view = render(
+      <AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />
+    )
 
     await screen.findByRole('checkbox', { name: 'In room Notes' })
     fireEvent.change(screen.getByLabelText('Group name'), { target: { value: 'SCP' } })

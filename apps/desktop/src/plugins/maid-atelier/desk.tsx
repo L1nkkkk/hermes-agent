@@ -1,3 +1,7 @@
+import { useStore } from '@nanostores/react'
+
+import { $currentModel } from '@/store/session'
+
 import { COPY } from './copy'
 import type { AtelierMessage } from './gateway'
 import {
@@ -12,9 +16,10 @@ import {
   type ProgressModel,
   type Room
 } from './model'
+import { Emoji, Mark } from './marks'
 import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
-import type { PresenceTone } from './theme'
+import { goalBadgeFill, goalEmoji, PRESENCE_FILL, type PresenceTone } from './theme'
 
 const TONE: Record<ProgressModel['tone'], PresenceTone> = {
   working: 'busy',
@@ -54,6 +59,7 @@ export function Desk(props: {
   onEditFace: (id: string | null) => void
   onPickFace: (id: string, index: number) => void
   caret: number
+  youTone: PresenceTone
 }) {
   const agents =
     props.room.kind === 'group' ? props.room.members.flatMap(member => (member.kind === 'agent' ? [member] : [])) : []
@@ -65,6 +71,7 @@ export function Desk(props: {
   const target = findMaidMentionTarget(props.composer, props.caret)
   const choices = target ? maidMentionChoices(mentionAgents, target.query) : []
   const candidates = draftCandidates(props.profiles, props.memberIds, props.ownerId)
+  const model = useStore($currentModel).trim()
 
   return (
     <section className="atelier-pane atelier-desk" data-atelier-pane="main">
@@ -74,8 +81,11 @@ export function Desk(props: {
             <button
               aria-label={COPY.changeFace(member.name)}
               className="atelier-room__face"
+              data-kind={member.kind}
+              data-tone={member.kind === 'user' ? props.youTone : undefined}
               key={member.id}
               onClick={() => props.onEditFace(member.id)}
+              style={member.kind === 'user' ? { ['--face-ring' as string]: PRESENCE_FILL[props.youTone] } : undefined}
               type="button"
             >
               <img alt="" src={portraitSrc(member.id, props.faces[member.id])} />
@@ -83,10 +93,13 @@ export function Desk(props: {
           ))}
         </div>
         <div className="atelier-room__copy">
-          <h1 className="atelier-room-title">{props.room.title}</h1>
-          <div className="atelier-room__meta">
-            {props.room.kind === 'group' ? COPY.groupRoom(props.room.members.length) : COPY.privateRoom}
-          </div>
+          <h1 className="atelier-room-title">
+            <Emoji symbol="💬" />
+            {props.room.title}
+          </h1>
+          {props.room.kind === 'group' ? (
+            <div className="atelier-room__meta">{COPY.groupRoom(props.room.members.length)}</div>
+          ) : null}
         </div>
         <ProgressChip hold={props.chipHold} progress={props.progress} />
       </header>
@@ -176,9 +189,20 @@ export function Desk(props: {
             title={candidates.length === 0 ? COPY.draftEmpty : COPY.draftHint}
             type="button"
           >
-            {COPY.draftLine}
+            <Mark name="draft" />
+            <span>{COPY.draftLine}</span>
           </button>
-          <button type="submit">{COPY.send}</button>
+          <div className="atelier-composer__end">
+            <span className="atelier-model">
+              <Emoji symbol="✨" />
+              <Mark name="chip" />
+              <span>{model || COPY.noModel}</span>
+            </span>
+            <button type="submit">
+              <Mark name="send" />
+              <span>{COPY.send}</span>
+            </button>
+          </div>
         </div>
         <StepAdd onAdd={props.onAddStep} />
       </form>
@@ -199,13 +223,20 @@ function ProgressChip(props: { progress: ProgressModel; hold: MaidHold | null })
       data-tone={tone}
       role="status"
     >
-      <Presence tone={tone} />
-      {props.progress.total > 0 ? null : <span className="atelier-progress__label">{label}</span>}
+      {tone === 'unknown' ? (
+        <span className="atelier-progress__mark">
+          <Mark name="goal" />
+        </span>
+      ) : (
+        <Presence tone={tone} />
+      )}
       {props.progress.total > 0 ? (
         <span className="atelier-progress__fraction">
           {COPY.process(props.progress.completed, props.progress.total)}
         </span>
-      ) : null}
+      ) : empty ? null : (
+        <span className="atelier-progress__label">{label}</span>
+      )}
     </div>
   )
 }
@@ -217,16 +248,20 @@ function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hol
   const sentence = target ? COPY.goalLine(target, STATUS[props.progress.tone]) : COPY.noGoal
   const fraction = props.progress.total > 0
   const width = fraction ? Math.round((props.progress.completed / props.progress.total) * 100) : 0
+  const badgeFill = goalBadgeFill(tone)
 
   return (
     <div aria-hidden="true" className="atelier-goalstrip" data-tone={tone}>
       <div className="atelier-goalstrip__row">
+        <span className="atelier-goalstrip__badge" data-fill={badgeFill} style={{ background: badgeFill }}>
+          <Mark name={tone === 'online' ? 'check' : 'goal'} />
+        </span>
+        <Emoji symbol={goalEmoji(tone)} />
         <span className="atelier-goalstrip__goal">{sentence}</span>
-        {fraction ? (
-          <span className="atelier-goalstrip__fraction">
-            {COPY.process(props.progress.completed, props.progress.total)}
-          </span>
-        ) : null}
+        <span className="atelier-goalstrip__fraction">
+          <Mark name="process" />
+          {fraction ? <span>{COPY.process(props.progress.completed, props.progress.total)}</span> : null}
+        </span>
       </div>
       {fraction ? (
         <div className="atelier-goalstrip__track">
@@ -253,8 +288,16 @@ function TaskLog(props: {
 
     return (
       <section aria-label={COPY.workQueue} className="atelier-log">
-        <p>{COPY.noLog}</p>
-        <p data-empty="checklist">{COPY.noChecklist}</p>
+        <p className="atelier-empty">
+          <Mark name="file" />
+          <Emoji symbol="📄" />
+          <span>{COPY.noLog}</span>
+        </p>
+        <p className="atelier-empty" data-empty="checklist">
+          <Mark name="queue" />
+          <Emoji symbol="📋" />
+          <span>{COPY.noChecklist}</span>
+        </p>
       </section>
     )
   }
@@ -272,6 +315,9 @@ function TaskLog(props: {
                 role="checkbox"
                 type="button"
               >
+                <span aria-hidden="true" className="atelier-step__box">
+                  {step.status === 'completed' ? <Mark name="check" /> : null}
+                </span>
                 <StepPresence goalHold={props.goalHold} status={step.status} />
                 <span>{step.step}</span>
               </button>

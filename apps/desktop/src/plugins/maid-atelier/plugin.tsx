@@ -8,10 +8,13 @@ import type {
   RouteContribution,
   SidebarNavContribution
 } from '@hermes/plugin-sdk'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+
+import { $sidebarOpen, setSidebarOpen } from '@/store/layout'
 
 import { COPY } from './copy'
 import { hostGateway } from './gateway'
+import { bindAtelierWindow } from './window-chrome'
 import { AtelierWorkbench } from './workbench'
 
 const PATH = '/atelier'
@@ -19,6 +22,20 @@ const PATH = '/atelier'
 function AtelierPage(props: { storage: PluginContext['storage'] }) {
   const gatewayState = useValue(host.state.gateway)
   const gateway = useMemo(() => hostGateway(), [])
+
+  useEffect(
+    () =>
+      bindAtelierWindow({
+        documentElement: document.documentElement,
+        setSidebarOpen,
+        sidebarOpen: () => $sidebarOpen.get(),
+        subscribePageHide: release => {
+          window.addEventListener('pagehide', release)
+          return () => window.removeEventListener('pagehide', release)
+        }
+      }),
+    []
+  )
 
   return (
     <AtelierWorkbench
