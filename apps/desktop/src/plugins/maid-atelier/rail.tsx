@@ -1,20 +1,19 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useMemo, useRef, useState } from 'react'
 
 import { COPY } from './copy'
-import type { MaidGroup, Workflow } from './desk-store'
+import type { MaidGroup } from './desk-store'
 import type { AtelierProfile, AtelierProject, AtelierSession } from './gateway'
-import { type MaidHold, maidManuscript, type ProgressCard } from './model'
-import { groupSessions, type SessionBucket } from './paths'
 import { Emoji, Mark, type MarkName } from './marks'
+import type { MaidHold } from './model'
+import { groupSessions, pathTail, type SessionBucket } from './paths'
 import { portraitSrc } from './portraits'
-import { Presence, StepPresence } from './presence'
-import { TONE_EMOJI, type PresenceTone } from './theme'
+import { Presence } from './presence'
+import { type PresenceTone, TONE_EMOJI } from './theme'
 
 const SECTION_EMOJI = {
   groups: '⭐',
   maid: '👤',
-  queue: '📋',
-  workflow: '🔀'
+  work: '📋'
 } as const
 
 const LOUD: ReadonlySet<PresenceTone> = new Set(['busy', 'pending', 'blocked', 'attention'])
@@ -32,7 +31,6 @@ const TONE_LABEL: Record<PresenceTone, string> = {
 export function Rail(props: {
   profiles: readonly AtelierProfile[]
   sessions: readonly AtelierSession[]
-  workflows: readonly Workflow[]
   ownerId: string | null
   sessionId: string | null
   memberIds: readonly string[]
@@ -42,22 +40,21 @@ export function Rail(props: {
   faces: Readonly<Record<string, number>>
   groups: readonly MaidGroup[]
   projects: readonly AtelierProject[]
-  card: ProgressCard | null
-  goalHold: MaidHold | null
   sessionHolds: Readonly<Record<string, MaidHold>>
   onSelectProfile: (id: string) => void
   onToggleMember: (id: string) => void
   onSelectSession: (id: string) => void
-  onOpenWorkflow: (workflow: Workflow) => void
-  onSaveWorkflow: (title: string) => void
   onSaveGroup: (title: string) => void
   onAssignGroup: (profileId: string, groupId: string | null) => void
-  onToggleStep: (index: number) => void
-  manuscripts: readonly { id: string; label: string }[]
-  onOpenManuscript: (id: string) => void
+  onCreateSession: () => void
+  onFocusComposer: () => void
+  onOpenChat: () => void
+  onOpenService: () => void
 }) {
   const [query, setQuery] = useState('')
   const [closed, setClosed] = useState<Readonly<Record<string, boolean>>>({})
+  const [more, setMore] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
   const groupedIds = new Set(props.groups.flatMap(group => group.profileIds.map(id => id.toLowerCase())))
 
   const loose = props.profiles.filter(
@@ -65,6 +62,22 @@ export function Rail(props: {
   )
 
   const fold = (id: string, expanded: boolean) => setClosed(current => ({ ...current, [id]: expanded }))
+
+  const needle = query.trim().toLowerCase()
+  // Real queue, not a mock: only sessions the gateway reports busy or holding.
+  const workRows = props.sessions.filter(
+    session =>
+      (props.sessionHolds[session.id] != null || session.busy === true) &&
+      (!needle || session.title.toLowerCase().includes(needle))
+  )
+  const reviewTarget =
+    props.sessions.find(session => props.sessionHolds[session.id] != null) ??
+    props.sessions.find(session => session.busy === true) ??
+    null
+  const projectTarget = useMemo(
+    () => groupSessions(props.sessions, props.projects).buckets[0]?.sessions[0] ?? null,
+    [props.projects, props.sessions]
+  )
 
   const branch: Omit<BranchProps, 'profile'> = {
     closed,
@@ -93,10 +106,98 @@ export function Rail(props: {
           aria-label={COPY.search}
           onChange={event => setQuery(event.target.value)}
           placeholder={COPY.search}
+          ref={searchRef}
           type="search"
           value={query}
         />
       </label>
+      <div aria-label={COPY.quickBand} className="atelier-quick" role="toolbar">
+        <QuickItem
+          disabled={!props.gatewayOpen || !props.ownerId}
+          label={COPY.quickNewMaid}
+          mark="maid"
+          onClick={props.onCreateSession}
+          text="New"
+          title={COPY.newMaidTitle}
+        />
+        <QuickItem
+          label={COPY.quickStart}
+          mark="send"
+          onClick={props.onFocusComposer}
+          text="Start"
+          title={COPY.quickStartTitle}
+        />
+        <QuickItem
+          disabled={!reviewTarget}
+          label={COPY.quickReview}
+          mark="check"
+          onClick={() => reviewTarget && props.onSelectSession(reviewTarget.id)}
+          text="Review"
+          title={reviewTarget ? COPY.reviewTitle : COPY.noneToReview}
+        />
+        <QuickItem
+          disabled={!projectTarget}
+          label={COPY.quickProject}
+          mark="folder"
+          onClick={() => projectTarget && props.onSelectSession(projectTarget.id)}
+          text="Project"
+          title={projectTarget ? COPY.projectTitle : COPY.noProject}
+        />
+        <QuickItem
+          label={COPY.quickService}
+          mark="plug"
+          onClick={props.onOpenService}
+          text="Service"
+          title={COPY.serviceTitle}
+        />
+        <div className="atelier-quick__more">
+          <QuickItem
+            active={more}
+            label={COPY.quickMore}
+            mark="more"
+            onClick={() => setMore(current => !current)}
+            text="More"
+            title={COPY.moreMenu}
+          />
+          {more ? (
+            <div aria-label={COPY.moreMenu} className="atelier-quick__menu" role="menu">
+              <button
+                onClick={() => {
+                  setMore(false)
+                  props.onOpenChat()
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <Mark name="chevron" />
+                <span>{COPY.openChat}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMore(false)
+                  props.onOpenService()
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <Mark name="plug" />
+                <span>{COPY.settings}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMore(false)
+                  searchRef.current?.focus()
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <Mark name="search" />
+                <span>{COPY.search}</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
       <div className="atelier-rail__scroll">
         <Section emoji={SECTION_EMOJI.groups} mark="groups" title={COPY.groups}>
           {props.groups.map(group => (
@@ -121,34 +222,31 @@ export function Rail(props: {
           {loose.map(profile => (
             <ProfileBranch key={profile.id} profile={profile} {...branch} />
           ))}
+          <button
+            className="atelier-new-session"
+            disabled={!props.gatewayOpen || !props.ownerId}
+            onClick={props.onCreateSession}
+            type="button"
+          >
+            <Emoji symbol="➕" />
+            <span className="atelier-row__name">{COPY.newSession}</span>
+          </button>
         </Section>
-        <Section emoji={SECTION_EMOJI.queue} mark="queue" title={COPY.workQueue}>
-          <WorkSteps
-            card={props.card}
-            goalHold={props.goalHold}
-            manuscripts={props.manuscripts}
-            onOpenManuscript={props.onOpenManuscript}
-            onToggleStep={props.onToggleStep}
-          />
-        </Section>
-        <Section emoji={SECTION_EMOJI.workflow} mark="workflow" title={COPY.workflows}>
-          {props.workflows.length === 0 ? (
-            <Empty emoji={SECTION_EMOJI.workflow} mark="workflow">
-              {COPY.noWorkflows}
+        <Section emoji={SECTION_EMOJI.work} mark="queue" title={COPY.work}>
+          {workRows.length === 0 ? (
+            <Empty emoji={SECTION_EMOJI.work} mark="queue">
+              {COPY.noWork}
             </Empty>
           ) : null}
-          {props.workflows.map(workflow => (
-            <button
-              className="atelier-session"
-              key={workflow.id}
-              onClick={() => props.onOpenWorkflow(workflow)}
-              type="button"
-            >
-              <Mark name="workflow" />
-              <span className="atelier-row__name">{workflow.title}</span>
-            </button>
+          {workRows.map(session => (
+            <SessionRow
+              hold={props.sessionHolds[session.id]}
+              key={session.id}
+              onSelect={() => props.onSelectSession(session.id)}
+              selected={session.id === props.sessionId}
+              session={session}
+            />
           ))}
-          <WorkflowSave onSave={props.onSaveWorkflow} />
         </Section>
       </div>
       <header className="atelier-you">
@@ -163,6 +261,32 @@ export function Rail(props: {
         </div>
       </header>
     </aside>
+  )
+}
+
+function QuickItem(props: {
+  mark: MarkName
+  /** Accessible name keeps the full entry (New Maid), the slot shows the short form. */
+  label: string
+  text: string
+  title: string
+  onClick: () => void
+  disabled?: boolean
+  active?: boolean
+}) {
+  return (
+    <button
+      aria-label={props.label}
+      className="atelier-quick__item"
+      data-active={props.active ? 'true' : undefined}
+      disabled={props.disabled}
+      onClick={props.onClick}
+      title={props.title}
+      type="button"
+    >
+      <Mark name={props.mark} />
+      <span className="atelier-quick__label">{props.text}</span>
+    </button>
   )
 }
 
@@ -202,13 +326,17 @@ function GroupBranch(props: {
   }
 
   const expanded = props.closed[props.group.id] !== true && (members.length > 0 || !needle)
+  const roster = groupRoster(members, props.branch.presence)
 
   return (
     <div className="atelier-branch" data-atelier-group={props.group.id}>
       <div className="atelier-row">
         <Twist expanded={expanded} label={props.group.title} onToggle={() => props.onFold(props.group.id, expanded)} />
         <Mark name="groups" />
-        <span className="atelier-row__name">{props.group.title}</span>
+        <span className="atelier-row__stack">
+          <span className="atelier-row__name">{props.group.title}</span>
+          {roster ? <span className="atelier-row__preview">{roster}</span> : null}
+        </span>
         <span className="atelier-row__age">{members.length}</span>
       </div>
       {expanded ? members.map(profile => <ProfileBranch key={profile.id} profile={profile} {...props.branch} />) : null}
@@ -366,6 +494,7 @@ function SessionRow(props: {
 }) {
   const tone = props.hold ?? sessionTone(props.session.busy)
   const age = sessionAge(props.session.updatedAt)
+  const preview = sessionPreview(props.session)
 
   return (
     <button
@@ -376,11 +505,25 @@ function SessionRow(props: {
     >
       <Presence tone={tone} />
       <Mark name="file" />
-      <span className="atelier-row__name">{props.session.title}</span>
+      <span className="atelier-row__stack">
+        <span className="atelier-row__name">{props.session.title}</span>
+        {preview ? <span className="atelier-row__preview">{preview}</span> : null}
+      </span>
       {LOUD.has(tone) ? <span className="atelier-row__meta">{TONE_LABEL[tone]}</span> : null}
       {age ? <span className="atelier-row__age">{age}</span> : null}
     </button>
   )
+}
+
+/** One short line under a row title: the gateway preview, else the workspace tail. */
+function sessionPreview(session: AtelierSession): string {
+  const preview = session.preview.replace(/\s+/gu, ' ').trim()
+
+  if (preview) {
+    return preview.length > 46 ? `${preview.slice(0, 45)}…` : preview
+  }
+
+  return session.cwd ? pathTail(session.cwd, 2).join('/') : ''
 }
 
 function Twist(props: { expanded: boolean; label: string; onToggle: () => void }) {
@@ -414,12 +557,19 @@ function GroupSave(props: { onSave: (title: string) => void }) {
       }}
     >
       <input aria-label={COPY.groupName} name="title" placeholder={COPY.groupName} />
-      <button type="submit">
+      <button aria-label={COPY.newGroup} title={COPY.newGroup} type="submit">
         <Emoji symbol="➕" />
-        {COPY.newGroup}
       </button>
     </form>
   )
+}
+
+/** Group row subtitle: roster size plus how many of its maids are loud right now. */
+function groupRoster(members: readonly AtelierProfile[], presence: Readonly<Record<string, PresenceTone>>): string {
+  const working = members.filter(profile => LOUD.has(presence[profile.id] ?? 'unknown')).length
+  const total = COPY.maidCount(members.length)
+
+  return working > 0 ? `${total} · ${COPY.busyCount(working)}` : total
 }
 
 function groupMembers(
@@ -510,86 +660,6 @@ function sessionAge(updatedAt: number, now = Date.now()): string {
   }
 
   return `${Math.floor(hours / 24)}d`
-}
-
-function WorkSteps(props: {
-  card: ProgressCard | null
-  goalHold: MaidHold | null
-  manuscripts: readonly { id: string; label: string }[]
-  onOpenManuscript: (id: string) => void
-  onToggleStep: (index: number) => void
-}) {
-  const steps = props.card?.steps.filter(step => step.step.trim()) ?? []
-
-  if (steps.length === 0 && props.manuscripts.length === 0) {
-    return (
-      <Empty emoji={SECTION_EMOJI.queue} mark="queue">
-        {COPY.noChecklist}
-      </Empty>
-    )
-  }
-
-  return (
-    <ul className="atelier-steps">
-      {steps.map((step, index) => (
-        <li key={`${index}:${step.step}`}>
-          <button
-            aria-checked={step.status === 'completed'}
-            className="atelier-step"
-            data-done={step.status === 'completed' ? 'true' : 'false'}
-            data-readonly-label="true"
-            onClick={() => props.onToggleStep(index)}
-            role="checkbox"
-            type="button"
-          >
-            <span aria-hidden="true" className="atelier-step__box">
-              {step.status === 'completed' ? <Mark name="check" /> : null}
-            </span>
-            <StepPresence goalHold={props.goalHold} status={step.status} />
-            <span>{step.step}</span>
-          </button>
-        </li>
-      ))}
-      {props.manuscripts.map(item => (
-        <li key={item.id}>
-          <button
-            className="atelier-step"
-            data-manuscript="true"
-            onClick={() => props.onOpenManuscript(item.id)}
-            type="button"
-          >
-            <Mark name="file" />
-            <span>{item.label}</span>
-            {maidManuscript(item.label) ? <span className="atelier-refine">{COPY.refine}</span> : null}
-          </button>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function WorkflowSave(props: { onSave: (title: string) => void }) {
-  return (
-    <form
-      className="atelier-workflow-save"
-      onSubmit={event => {
-        event.preventDefault()
-        const data = new FormData(event.currentTarget)
-        const title = String(data.get('title') || '').trim()
-
-        if (title) {
-          props.onSave(title)
-          event.currentTarget.reset()
-        }
-      }}
-    >
-      <input aria-label={COPY.workflowName} name="title" placeholder={COPY.workflowName} />
-      <button type="submit">
-        <Emoji symbol="➕" />
-        {COPY.saveWorkflow}
-      </button>
-    </form>
-  )
 }
 
 function Face(props: { id: string; name: string; faces: Readonly<Record<string, number>>; tone?: PresenceTone }) {

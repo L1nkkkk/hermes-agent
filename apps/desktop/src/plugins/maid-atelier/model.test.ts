@@ -4,6 +4,7 @@ import {
   applyMaidMention,
   draftCandidates,
   findMaidMentionTarget,
+  goalSummary,
   maidMentionTokens,
   maidPresenceHold,
   maidPullDraft,
@@ -13,7 +14,7 @@ import {
   resolveMaidMentionRoute,
   resolveMaidProgress
 } from './model'
-import { PRESENCE_FILL } from './theme'
+import { PRESENCE_FILL, statusPaint } from './theme'
 
 const harper = { id: 'harper', name: 'Harper' }
 const notes = { id: 'notes', name: 'Notes' }
@@ -30,6 +31,15 @@ describe('maid progress', () => {
     })
   })
 
+  it('reads a control goal and does not invent one when control has none', () => {
+    expect(resolveMaidProgress({ goal: { objective: 'Ship the chapter', status: 'active' } })).toMatchObject({
+      source: 'goal',
+      target: 'Ship the chapter',
+      tone: 'working'
+    })
+    expect(resolveMaidProgress({ goal: null, activeRun: true })).toMatchObject({ source: 'empty', target: '' })
+  })
+
   it('counts only real steps', () => {
     const model = resolveMaidProgress({
       steps: [
@@ -39,6 +49,55 @@ describe('maid progress', () => {
     })
 
     expect(model).toMatchObject({ source: 'progress', completed: 1, total: 2, target: 'ship' })
+  })
+
+  it('takes Process n/m from the goal control only', () => {
+    expect(
+      resolveMaidProgress({
+        goal: {
+          objective: 'Ship volume 1',
+          status: 'active',
+          gates: [
+            { command: 'pytest -q', exitCode: 0 },
+            { command: 'pnpm lint', exitCode: null }
+          ]
+        }
+      })
+    ).toMatchObject({ completed: 1, total: 2 })
+
+    expect(resolveMaidProgress({ goal: { objective: 'Ship', turnsUsed: 4, maxTurns: 5 } })).toMatchObject({
+      completed: 4,
+      total: 5
+    })
+
+    // A goal with neither gates nor turns reports no fraction at all.
+    expect(resolveMaidProgress({ goal: { objective: 'Ship', status: 'blocked' } })).toMatchObject({
+      completed: 0,
+      total: 0
+    })
+  })
+})
+
+describe('goal summary', () => {
+  it('lists only the subgoals and gates control reported', () => {
+    expect(goalSummary(null)).toEqual([])
+    expect(goalSummary({ objective: 'Ship' })).toEqual([])
+    expect(
+      goalSummary({
+        objective: 'Ship',
+        subgoals: ['Rewrite ch03', '  ', 'Review ch07'],
+        gates: [
+          { command: 'pytest -q', exitCode: 0 },
+          { command: 'pnpm lint', exitCode: 2 },
+          { command: '  ', exitCode: null }
+        ]
+      })
+    ).toEqual([
+      { kind: 'subgoal', index: 1, text: 'Rewrite ch03' },
+      { kind: 'subgoal', index: 3, text: 'Review ch07' },
+      { kind: 'gate', command: 'pytest -q', state: 'passed' },
+      { kind: 'gate', command: 'pnpm lint', state: 'failed' }
+    ])
   })
 })
 
@@ -146,6 +205,9 @@ describe('presence fills', () => {
   it('keeps pending and blocked apart from each other and from the busy idle online trio', () => {
     expect(PRESENCE_FILL.pending).toBe('#5b8def')
     expect(PRESENCE_FILL.blocked).toBe('#d4546a')
+    expect(statusPaint('pending')).toBe('var(--status-pending, #5b8def)')
+    expect(statusPaint('blocked')).toBe('var(--status-blocked, #d4546a)')
+    expect(statusPaint('online')).not.toBe(PRESENCE_FILL.online)
     expect(PRESENCE_FILL.pending).not.toBe(PRESENCE_FILL.blocked)
     expect(new Set([PRESENCE_FILL.busy, PRESENCE_FILL.idle, PRESENCE_FILL.online]).size).toBe(3)
     expect(PRESENCE_FILL.unknown).toBe('transparent')

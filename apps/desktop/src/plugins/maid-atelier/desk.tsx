@@ -1,25 +1,25 @@
-import { useStore } from '@nanostores/react'
-
-import { $currentModel } from '@/store/session'
+import { host, useValue } from '@hermes/plugin-sdk'
+import { useEffect, useRef } from 'react'
 
 import { COPY } from './copy'
 import type { AtelierMessage } from './gateway'
+import { Emoji, Mark } from './marks'
 import {
   applyMaidMention,
-  draftCandidates,
   findMaidMentionTarget,
+  type GateState,
   type GoalFacts,
+  goalSummary,
   type MaidHold,
   maidMentionChoices,
   type MentionAgent,
-  type ProgressCard,
   type ProgressModel,
-  type Room
+  type Room,
+  type SummaryRow
 } from './model'
-import { Emoji, Mark } from './marks'
-import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
-import { Presence, StepPresence } from './presence'
-import { goalBadgeFill, goalEmoji, PRESENCE_FILL, type PresenceTone } from './theme'
+import { portraitSrc } from './portraits'
+import { Presence } from './presence'
+import { goalBadgeFill, goalEmoji, type PresenceTone, statusPaint } from './theme'
 
 const TONE: Record<ProgressModel['tone'], PresenceTone> = {
   working: 'busy',
@@ -43,23 +43,18 @@ export function Desk(props: {
   progress: ProgressModel
   messages: readonly AtelierMessage[]
   goal: GoalFacts | null
-  card: ProgressCard | null
-  goalHold: MaidHold | null
   chipHold: MaidHold | null
   composer: string
   faces: Readonly<Record<string, number>>
-  pullOpen: boolean
-  editingFace: string | null
   onComposer: (value: string, caret: number) => void
   onSend: () => void
-  onTogglePull: () => void
-  onDraft: (agent: MentionAgent) => void
-  onToggleStep: (index: number) => void
-  onAddStep: (label: string) => void
-  onEditFace: (id: string | null) => void
-  onPickFace: (id: string, index: number) => void
   caret: number
   youTone: PresenceTone
+  sessionId: string | null
+  /** Bumps when the rail's Quick Start asks for the composer. */
+  focusKey: number
+  /** Workspace tail under the room name, from the session the desk resumed. */
+  workspaceTail: string
 }) {
   const agents =
     props.room.kind === 'group' ? props.room.members.flatMap(member => (member.kind === 'agent' ? [member] : [])) : []
@@ -70,26 +65,30 @@ export function Desk(props: {
 
   const target = findMaidMentionTarget(props.composer, props.caret)
   const choices = target ? maidMentionChoices(mentionAgents, target.query) : []
-  const candidates = draftCandidates(props.profiles, props.memberIds, props.ownerId)
-  const model = useStore($currentModel).trim()
+  const model = useValue(host.state.model).trim()
+  const canSend = props.composer.trim().length > 0
+  const input = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (props.focusKey > 0) {
+      input.current?.focus()
+    }
+  }, [props.focusKey])
 
   return (
     <section className="atelier-pane atelier-desk" data-atelier-pane="main">
       <header className="atelier-desk__bar">
         <div className="atelier-room__faces">
           {props.room.members.slice(0, 4).map(member => (
-            <button
-              aria-label={COPY.changeFace(member.name)}
+            <span
               className="atelier-room__face"
               data-kind={member.kind}
               data-tone={member.kind === 'user' ? props.youTone : undefined}
               key={member.id}
-              onClick={() => props.onEditFace(member.id)}
-              style={member.kind === 'user' ? { ['--face-ring' as string]: PRESENCE_FILL[props.youTone] } : undefined}
-              type="button"
+              style={member.kind === 'user' ? { ['--face-ring' as string]: statusPaint(props.youTone) } : undefined}
             >
               <img alt="" src={portraitSrc(member.id, props.faces[member.id])} />
-            </button>
+            </span>
           ))}
         </div>
         <div className="atelier-room__copy">
@@ -97,47 +96,33 @@ export function Desk(props: {
             <Emoji symbol="💬" />
             {props.room.title}
           </h1>
-          {props.room.kind === 'group' ? (
-            <div className="atelier-room__meta">{COPY.groupRoom(props.room.members.length)}</div>
-          ) : null}
+          <div className="atelier-room__meta">
+            <span>{props.room.kind === 'group' ? COPY.groupRoom(props.room.members.length) : COPY.privateRoom}</span>
+            {props.workspaceTail ? (
+              <>
+                <span className="atelier-room__sep">·</span>
+                <span className="atelier-room__path" title={props.workspaceTail}>
+                  {props.workspaceTail}
+                </span>
+              </>
+            ) : null}
+          </div>
+        </div>
+        <div className="atelier-host">
+          <button
+            onClick={() => host.navigate(props.sessionId ? `/${encodeURIComponent(props.sessionId)}` : '/')}
+            type="button"
+          >
+            {COPY.openChat}
+          </button>
+          <button onClick={() => host.navigate('/settings')} type="button">
+            {COPY.settings}
+          </button>
         </div>
         <ProgressChip hold={props.chipHold} progress={props.progress} />
       </header>
-      {props.pullOpen && candidates.length > 0 ? (
-        <div className="atelier-draft__menu" role="group">
-          <p>{COPY.draftHint}</p>
-          {candidates.map(agent => (
-            <button data-maid-candidate={agent.id} key={agent.id} onClick={() => props.onDraft(agent)} type="button">
-              <img alt="" src={portraitSrc(agent.id, props.faces[agent.id])} />
-              <span>{agent.name}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {props.editingFace ? (
-        <div aria-label={COPY.faceTitle} className="atelier-faces" role="group">
-          {Array.from({ length: FACE_COUNT }, (_, index) => (
-            <button
-              aria-label={FACE_NAMES[index]}
-              key={index}
-              onClick={() => props.onPickFace(props.editingFace as string, index)}
-              type="button"
-            >
-              <img alt="" src={portraitSrc(props.editingFace as string, index)} />
-            </button>
-          ))}
-          <button onClick={() => props.onEditFace(null)} type="button">
-            {COPY.close}
-          </button>
-        </div>
-      ) : null}
       <div className="atelier-thread">
-        <TaskLog
-          card={props.card}
-          goalHold={props.goalHold}
-          onToggleStep={props.onToggleStep}
-          quiet={props.messages.length > 0}
-        />
+        <WorkSummary goal={props.goal} />
         {props.messages.map((message, index) => (
           <MessageRow
             faces={props.faces}
@@ -152,6 +137,11 @@ export function Desk(props: {
         className="atelier-composer"
         onSubmit={event => {
           event.preventDefault()
+
+          if (!canSend) {
+            return
+          }
+
           props.onSend()
         }}
       >
@@ -177,34 +167,27 @@ export function Desk(props: {
           onChange={event => props.onComposer(event.target.value, event.target.selectionStart)}
           onSelect={event => props.onComposer(event.currentTarget.value, event.currentTarget.selectionStart)}
           placeholder={props.room.kind === 'group' ? COPY.composerGroup : COPY.composerDm(props.room.title)}
+          ref={input}
           value={props.composer}
         />
         <div className="atelier-composer__bar">
-          <button
-            aria-expanded={props.pullOpen}
-            className="atelier-draft"
-            data-maid-pull="draft"
-            disabled={candidates.length === 0}
-            onClick={props.onTogglePull}
-            title={candidates.length === 0 ? COPY.draftEmpty : COPY.draftHint}
-            type="button"
-          >
-            <Mark name="draft" />
-            <span>{COPY.draftLine}</span>
-          </button>
           <div className="atelier-composer__end">
-            <span className="atelier-model">
+            <button
+              aria-label={COPY.pickModel}
+              className="atelier-model"
+              onClick={() => host.openModelPicker()}
+              type="button"
+            >
               <Emoji symbol="✨" />
               <Mark name="chip" />
               <span>{model || COPY.noModel}</span>
-            </span>
-            <button type="submit">
+            </button>
+            <button disabled={!canSend} type="submit">
               <Mark name="send" />
               <span>{COPY.send}</span>
             </button>
           </div>
         </div>
-        <StepAdd onAdd={props.onAddStep} />
       </form>
     </section>
   )
@@ -241,6 +224,61 @@ function ProgressChip(props: { progress: ProgressModel; hold: MaidHold | null })
   )
 }
 
+const GATE_MARK: Record<GateState, { mark: 'check' | 'cross' | 'dot'; label: string }> = {
+  passed: { mark: 'check', label: COPY.gatePassed },
+  failed: { mark: 'cross', label: COPY.gateFailed },
+  unrun: { mark: 'dot', label: COPY.gateUnrun }
+}
+
+/**
+ * Structured work summary above the transcript: the goal control's real
+ * criteria and gates as a file-list of bullets. No goal, no invented rows.
+ */
+function WorkSummary(props: { goal: GoalFacts | null }) {
+  const rows = goalSummary(props.goal)
+  const title = props.goal?.objective.trim() || ''
+
+  return (
+    <section aria-label={COPY.workSummaryLabel} className="atelier-summary">
+      <div className="atelier-summary__head">
+        <Mark name="queue" />
+        <span className="atelier-summary__title">{COPY.workSummary}</span>
+        {title ? <span className="atelier-summary__goal">{title}</span> : null}
+        {rows.length > 0 ? <span className="atelier-summary__count">{rows.length}</span> : null}
+      </div>
+      {rows.length === 0 ? (
+        <p className="atelier-summary__empty">{COPY.noPlan}</p>
+      ) : (
+        <ul className="atelier-summary__rows">
+          {rows.map(row => (
+            <SummaryLine key={row.kind === 'gate' ? `gate:${row.command}` : `sub:${row.index}`} row={row} />
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function SummaryLine(props: { row: SummaryRow }) {
+  if (props.row.kind === 'subgoal') {
+    return (
+      <li className="atelier-summary__row" data-kind="subgoal">
+        <span className="atelier-summary__index">{props.row.index}</span>
+        <span className="atelier-summary__text">{props.row.text}</span>
+      </li>
+    )
+  }
+
+  const gate = GATE_MARK[props.row.state]
+
+  return (
+    <li aria-label={gate.label} className="atelier-summary__row" data-kind="gate" data-state={props.row.state}>
+      <Mark name={gate.mark} />
+      <span className="atelier-summary__cmd">{props.row.command}</span>
+    </li>
+  )
+}
+
 function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hold: MaidHold | null }) {
   const empty = props.progress.source === 'empty' && !props.goal?.objective.trim()
   const tone: PresenceTone = props.hold ?? (empty ? 'unknown' : TONE[props.progress.tone])
@@ -272,63 +310,6 @@ function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hol
   )
 }
 
-function TaskLog(props: {
-  card: ProgressCard | null
-  goalHold: MaidHold | null
-  quiet: boolean
-  onToggleStep: (index: number) => void
-}) {
-  const steps = props.card?.steps.filter(step => step.step.trim()) ?? []
-  const log = firstLine(props.card?.markdown)
-
-  if (!log && steps.length === 0) {
-    if (props.quiet) {
-      return null
-    }
-
-    return (
-      <section aria-label={COPY.workQueue} className="atelier-log">
-        <p className="atelier-empty">
-          <Mark name="file" />
-          <Emoji symbol="📄" />
-          <span>{COPY.noLog}</span>
-        </p>
-        <p className="atelier-empty" data-empty="checklist">
-          <Mark name="queue" />
-          <Emoji symbol="📋" />
-          <span>{COPY.noChecklist}</span>
-        </p>
-      </section>
-    )
-  }
-
-  return (
-    <section aria-label={COPY.workQueue} className="atelier-log">
-      {log ? <p>{log}</p> : null}
-      {steps.length > 0 ? (
-        <ul>
-          {steps.map((step, index) => (
-            <li key={`${index}:${step.step}`}>
-              <button
-                aria-checked={step.status === 'completed'}
-                onClick={() => props.onToggleStep(index)}
-                role="checkbox"
-                type="button"
-              >
-                <span aria-hidden="true" className="atelier-step__box">
-                  {step.status === 'completed' ? <Mark name="check" /> : null}
-                </span>
-                <StepPresence goalHold={props.goalHold} status={step.status} />
-                <span>{step.step}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </section>
-  )
-}
-
 function MessageRow(props: { message: AtelierMessage; mention: boolean; faces: Readonly<Record<string, number>> }) {
   const id = props.message.role === 'user' ? 'user' : props.message.name
 
@@ -344,45 +325,4 @@ function MessageRow(props: { message: AtelierMessage; mention: boolean; faces: R
       </div>
     </article>
   )
-}
-
-function StepAdd(props: { onAdd: (label: string) => void }) {
-  return (
-    <input
-      aria-label={COPY.addStep}
-      className="atelier-add-step"
-      onKeyDown={event => {
-        if (event.key !== 'Enter') {
-          return
-        }
-
-        event.preventDefault()
-        const label = event.currentTarget.value.trim()
-
-        if (!label) {
-          return
-        }
-
-        props.onAdd(label)
-        event.currentTarget.value = ''
-      }}
-      placeholder={COPY.addStep}
-    />
-  )
-}
-
-function firstLine(markdown: string | undefined): string {
-  if (!markdown) {
-    return ''
-  }
-
-  for (const raw of markdown.split('\n')) {
-    const line = raw.replace(/^[#>*\-\d.)\s]+/u, '').trim()
-
-    if (line) {
-      return line
-    }
-  }
-
-  return ''
 }

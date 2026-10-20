@@ -22,6 +22,9 @@ export type MarkName =
   | 'plug'
   | 'chevron'
   | 'chip'
+  | 'more'
+  | 'cross'
+  | 'dot'
 
 const BODY: Record<MarkName, ReactNode> = {
   'caret-right': <path d="M6.25 4.35 L10.05 8 L6.25 11.65" />,
@@ -107,7 +110,16 @@ const BODY: Record<MarkName, ReactNode> = {
       <rect height="6" rx="1" width="6" x="5" y="5" />
       <path d="M8 2.55 V5 M8 11 V13.45 M2.55 8 H5 M11 8 H13.45" />
     </>
-  )
+  ),
+  more: (
+    <>
+      <circle cx="3.6" cy="8" r="0.95" />
+      <circle cx="8" cy="8" r="0.95" />
+      <circle cx="12.4" cy="8" r="0.95" />
+    </>
+  ),
+  cross: <path d="M4.4 4.4 L11.6 11.6 M11.6 4.4 L4.4 11.6" />,
+  dot: <circle cx="8" cy="8" r="2.6" />
 }
 
 export function Mark(props: { name: MarkName }) {

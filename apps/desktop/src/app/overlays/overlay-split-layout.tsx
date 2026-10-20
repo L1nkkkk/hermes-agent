@@ -122,14 +122,14 @@ export const OverlayNavItem = memo(function OverlayNavItem({
         nested
           ? active
             ? current
-              ? 'border-transparent bg-(--chrome-action-hover) font-medium text-foreground'
+              ? 'border-transparent bg-(--chrome-action-hover) font-medium text-(--dt-foreground)'
               : // Ancestor of the current page (a plugin whose sub-page is open):
                 // named, not filled, so exactly one nested row reads as selected.
-                'border-transparent bg-transparent font-medium text-foreground hover:bg-(--chrome-action-hover)'
-            : 'border-transparent bg-transparent text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+                'border-transparent bg-transparent font-medium text-(--dt-foreground) hover:bg-(--ui-row-hover-background)'
+            : 'border-transparent bg-transparent text-(--dt-muted-foreground) hover:bg-(--ui-row-hover-background) hover:text-(--dt-foreground)'
           : active
-            ? 'border-(--ui-stroke-tertiary) bg-(--ui-bg-tertiary) text-foreground'
-            : 'border-transparent bg-transparent text-(--ui-text-secondary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+            ? 'border-transparent bg-(--ui-row-active-background) text-(--dt-foreground)'
+            : 'border-transparent bg-transparent text-(--ui-text-secondary) hover:bg-(--ui-row-hover-background) hover:text-(--dt-foreground)'
       )}
       // Names the row by its own id, so a tour can address one link
       // (`[data-tour="nav-models"]`) instead of guessing at nth-child.

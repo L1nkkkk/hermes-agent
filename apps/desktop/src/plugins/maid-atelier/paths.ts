@@ -1,5 +1,4 @@
 import type { AtelierProject, AtelierSession } from './gateway'
-import { maidManuscript } from './model'
 
 export type SessionBucket = {
   id: string
@@ -18,42 +17,6 @@ export function pathTail(path: string, count = 3): string[] {
 
 export function pathLabel(path: string): string {
   return pathTail(path, 1)[0] || path
-}
-
-/**
- * Reader crumbs. A missing path stays a single title — no invented
- * `manuscript/` folders. A file-like session title is appended only as the leaf.
- */
-export function workspaceCrumbs(input: { path?: string | null; title?: string | null }): string[] {
-  const title = input.title?.trim() ?? ''
-  const path = input.path?.trim() ?? ''
-
-  if (!path) {
-    return title ? [title] : []
-  }
-
-  const tail = pathTail(path, 3)
-
-  if (title && maidManuscript(title) && tail[tail.length - 1] !== title) {
-    return [...tail, title]
-  }
-
-  return tail
-}
-
-export function fullWorkspacePath(input: { path?: string | null; title?: string | null }): string {
-  const path = input.path?.trim() ?? ''
-  const title = input.title?.trim() ?? ''
-
-  if (!path) {
-    return title
-  }
-
-  if (title && maidManuscript(title) && !path.endsWith(title)) {
-    return `${path.replace(/[\\/]+$/u, '')}/${title}`
-  }
-
-  return path
 }
 
 /**

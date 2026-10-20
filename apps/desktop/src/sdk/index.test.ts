@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ackComposerInsert } from '@/app/chat/composer/focus'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { host } from '@/sdk'
-import { $selectedStoredSessionId, setActiveSessionId, setAwaitingResponse, setBusy } from '@/store/session'
+import { $modelPickerOpen, $selectedStoredSessionId, setActiveSessionId, setAwaitingResponse, setBusy, setModelPickerOpen } from '@/store/session'
 import { clearAllSessionStates, publishSessionState } from '@/store/session-states'
 
 // The warm path must route through the guarded prewarm resolver (hover dwell,
@@ -419,5 +419,19 @@ describe('host.sessions session-list mutations', () => {
 
     host.sessions.setColor('row-1', null)
     expect($sessionColorOverrides.get()).toEqual({})
+  })
+})
+
+describe('host.openModelPicker', () => {
+  afterEach(() => {
+    setModelPickerOpen(false)
+  })
+
+  it('opens and closes the shell model picker', () => {
+    host.openModelPicker()
+    expect($modelPickerOpen.get()).toBe(true)
+
+    host.openModelPicker(false)
+    expect($modelPickerOpen.get()).toBe(false)
   })
 })

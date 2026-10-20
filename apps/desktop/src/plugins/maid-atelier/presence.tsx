@@ -1,6 +1,6 @@
 import { COPY } from './copy'
 import { type MaidHold, openStepTone, type ProgressStatus } from './model'
-import { PRESENCE_FILL, type PresenceTone } from './theme'
+import { type PresenceTone, statusPaint } from './theme'
 
 const LABEL: Record<PresenceTone, string> = {
   pending: COPY.pending,
@@ -13,7 +13,7 @@ const LABEL: Record<PresenceTone, string> = {
 }
 
 export function Presence(props: { tone: PresenceTone; label?: string; named?: boolean }) {
-  const fill = PRESENCE_FILL[props.tone]
+  const fill = statusPaint(props.tone)
   const label = props.label ?? LABEL[props.tone]
   const named = props.named !== false
 
