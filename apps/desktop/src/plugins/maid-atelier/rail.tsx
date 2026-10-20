@@ -214,7 +214,9 @@ function ProfileBranch(props: BranchProps) {
             label={props.profile.name}
             onToggle={() => props.onFold(props.profile.id, expanded)}
           />
-        ) : null}
+        ) : (
+          <span aria-hidden="true" className="atelier-gutter" />
+        )}
         <button className="atelier-row__main" onClick={() => props.onSelectProfile(props.profile.id)} type="button">
           <Face
             faces={props.faces}
@@ -223,7 +225,9 @@ function ProfileBranch(props: BranchProps) {
             tone={props.presence[props.profile.id] ?? 'unknown'}
           />
           <span className="atelier-row__name">{props.profile.name}</span>
-          {selected && props.sessions.length > 0 ? <span className="atelier-row__age">{props.sessions.length}</span> : null}
+          {selected && props.sessions.length > 0 ? (
+            <span className="atelier-row__age">{props.sessions.length}</span>
+          ) : null}
         </button>
         {selected && props.groups.length > 0 ? (
           <select

@@ -221,6 +221,7 @@ function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hol
   return (
     <div aria-hidden="true" className="atelier-goalstrip" data-tone={tone}>
       <div className="atelier-goalstrip__row">
+        <Presence named={false} tone={tone} />
         <span className="atelier-goalstrip__goal">{sentence}</span>
         {fraction ? (
           <span className="atelier-goalstrip__fraction">

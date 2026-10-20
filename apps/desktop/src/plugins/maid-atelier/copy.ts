@@ -48,6 +48,7 @@ export const COPY = {
   goalLine: (target: string, status: string) => `Goal ${target} · ${status}`,
   progressLabel: 'Atelier progress',
   readerEmpty: 'No file',
+  copyPath: 'Copy path',
   saveWorkflow: 'Save workflow',
   workflowName: 'Workflow name',
   send: 'Send',

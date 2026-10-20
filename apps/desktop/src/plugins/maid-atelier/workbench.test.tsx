@@ -330,13 +330,18 @@ describe('atelier workbench', () => {
       expect(path?.textContent).toContain('volume_1')
       expect(path?.textContent).toContain('ch01_deploy.md')
       expect(path?.textContent).not.toContain('Harper')
+      expect(path?.textContent).not.toContain('Copy path')
       expect(path?.getAttribute('title')).toBe('/work/hp02-rewrite/manuscript/volume_1/ch01_deploy.md')
+      expect(view.container.querySelector('.atelier-reader__tab')?.textContent).toBe('ch01_deploy.md')
+      expect(view.container.querySelector('.atelier-reader__copy')?.textContent).toBe('Copy path')
     })
   })
 
   it('keeps a local group as a profile list and does not load the other profile sessions', async () => {
     const calls: string[] = []
-    const view = render(<AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />)
+    const view = render(
+      <AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />
+    )
 
     await screen.findByRole('checkbox', { name: 'In room Notes' })
     fireEvent.change(screen.getByLabelText('Group name'), { target: { value: 'SCP' } })
