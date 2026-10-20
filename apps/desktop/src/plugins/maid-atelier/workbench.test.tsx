@@ -509,17 +509,15 @@ describe('atelier workbench', () => {
     const calls: string[] = []
     const titles: string[] = []
 
-    const gateway = createGateway(
-      (async (profile, method, params) => {
-        calls.push(`${profile.id}:${method}`)
+    const gateway = createGateway((async (profile, method, params) => {
+      calls.push(`${profile.id}:${method}`)
 
-        if (method === 'session.create') {
-          titles.push(String(params.title))
-        }
+      if (method === 'session.create') {
+        titles.push(String(params.title))
+      }
 
-        return gatewayPayload(profile, method)
-      }) as AtelierRpc
-    )
+      return gatewayPayload(profile, method)
+    }) as AtelierRpc)
 
     render(<AtelierWorkbench gateway={gateway} gatewayOpen notify={vi.fn()} storage={storage()} />)
 
@@ -548,18 +546,18 @@ describe('atelier workbench', () => {
 
     render(<AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />)
 
-    const send = await screen.findByRole('button', { name: 'Send' })
+    const send = (await screen.findByRole('button', { name: 'Send' })) as HTMLButtonElement
 
-    expect(send).toBeDisabled()
+    expect(send.disabled).toBe(true)
     fireEvent.submit(send.closest('form') as HTMLFormElement)
 
     expect(calls.some(call => call.endsWith(':prompt.submit'))).toBe(false)
 
     fireEvent.change(screen.getByLabelText(/Message Harper/), { target: { value: '  ' } })
-    expect(send).toBeDisabled()
+    expect(send.disabled).toBe(true)
 
     fireEvent.change(screen.getByLabelText(/Message Harper/), { target: { value: 'Ship it' } })
-    expect(send).not.toBeDisabled()
+    expect(send.disabled).toBe(false)
   })
 
   it('does not label a session title as a goal', async () => {
