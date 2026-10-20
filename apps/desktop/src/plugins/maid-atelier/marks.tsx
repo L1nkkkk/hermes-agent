@@ -117,3 +117,12 @@ export function Mark(props: { name: MarkName }) {
     </svg>
   )
 }
+
+/** Color emoji Control uses in the rail, goal strip, and reader chrome. Hidden from the accessible name. */
+export function Emoji(props: { symbol: string; trail?: boolean }) {
+  return (
+    <span aria-hidden="true" className={props.trail ? 'atelier-emoji atelier-emoji--trail' : 'atelier-emoji'}>
+      {props.symbol}
+    </span>
+  )
+}

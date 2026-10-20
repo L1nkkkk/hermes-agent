@@ -22,6 +22,30 @@ export const PRESENCE_FILL = {
 
 export type PresenceTone = keyof typeof PRESENCE_FILL
 
+/** Status emoji for a real presence tone. Online is a green dot, not a completed check. */
+export const TONE_EMOJI: Record<PresenceTone, string> = {
+  pending: '⏳',
+  blocked: '⛔',
+  busy: '⚡',
+  idle: '💤',
+  online: '🟢',
+  attention: '⚠️',
+  unknown: '🎯'
+}
+
+/** Goal-strip emoji. A completed goal is a check; an empty goal stays a target. */
+export function goalEmoji(tone: PresenceTone): string {
+  if (tone === 'online') {
+    return '✅'
+  }
+
+  if (tone === 'unknown') {
+    return '🎯'
+  }
+
+  return TONE_EMOJI[tone]
+}
+
 /** Goal hairline and the reader's first chapter. OpenClaw binds both to `--info`. */
 export const GOAL_ACCENT = '#60a5fa'
 

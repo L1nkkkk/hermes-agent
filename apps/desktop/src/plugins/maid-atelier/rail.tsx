@@ -5,10 +5,17 @@ import type { MaidGroup, Workflow } from './desk-store'
 import type { AtelierProfile, AtelierProject, AtelierSession } from './gateway'
 import { type MaidHold, maidManuscript, type ProgressCard } from './model'
 import { groupSessions, type SessionBucket } from './paths'
-import { Mark, type MarkName } from './marks'
+import { Emoji, Mark, type MarkName } from './marks'
 import { portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
-import type { PresenceTone } from './theme'
+import { TONE_EMOJI, type PresenceTone } from './theme'
+
+const SECTION_EMOJI = {
+  groups: '⭐',
+  maid: '👤',
+  queue: '📋',
+  workflow: '🔀'
+} as const
 
 const LOUD: ReadonlySet<PresenceTone> = new Set(['busy', 'pending', 'blocked', 'attention'])
 
@@ -91,7 +98,7 @@ export function Rail(props: {
         />
       </label>
       <div className="atelier-rail__scroll">
-        <Section mark="groups" title={COPY.groups}>
+        <Section emoji={SECTION_EMOJI.groups} mark="groups" title={COPY.groups}>
           {props.groups.map(group => (
             <GroupBranch
               branch={branch}
@@ -105,9 +112,9 @@ export function Rail(props: {
           ))}
           <GroupSave onSave={props.onSaveGroup} />
         </Section>
-        <Section mark="maid" title={COPY.maids}>
+        <Section emoji={SECTION_EMOJI.maid} mark="maid" title={COPY.maids}>
           {loose.length === 0 && props.profiles.length === 0 ? (
-            <Empty mark={props.gatewayOpen ? 'maid' : 'plug'}>
+            <Empty emoji={props.gatewayOpen ? '📭' : TONE_EMOJI.blocked} mark={props.gatewayOpen ? 'maid' : 'plug'}>
               {props.gatewayOpen ? COPY.noSessions : COPY.gatewayDown}
             </Empty>
           ) : null}
@@ -115,7 +122,7 @@ export function Rail(props: {
             <ProfileBranch key={profile.id} profile={profile} {...branch} />
           ))}
         </Section>
-        <Section mark="queue" title={COPY.workQueue}>
+        <Section emoji={SECTION_EMOJI.queue} mark="queue" title={COPY.workQueue}>
           <WorkSteps
             card={props.card}
             goalHold={props.goalHold}
@@ -124,8 +131,12 @@ export function Rail(props: {
             onToggleStep={props.onToggleStep}
           />
         </Section>
-        <Section mark="workflow" title={COPY.workflows}>
-          {props.workflows.length === 0 ? <Empty mark="workflow">{COPY.noWorkflows}</Empty> : null}
+        <Section emoji={SECTION_EMOJI.workflow} mark="workflow" title={COPY.workflows}>
+          {props.workflows.length === 0 ? (
+            <Empty emoji={SECTION_EMOJI.workflow} mark="workflow">
+              {COPY.noWorkflows}
+            </Empty>
+          ) : null}
           {props.workflows.map(workflow => (
             <button
               className="atelier-session"
@@ -146,6 +157,7 @@ export function Rail(props: {
           <div className="atelier-you__name">{props.youName}</div>
           <div className="atelier-you__status" data-tone={props.gatewayOpen ? 'online' : 'blocked'}>
             <Presence named={false} tone={props.gatewayOpen ? 'online' : 'blocked'} />
+            <Emoji symbol={props.gatewayOpen ? TONE_EMOJI.online : TONE_EMOJI.blocked} />
             <span>{props.gatewayOpen ? COPY.online : COPY.offline}</span>
           </div>
         </div>
@@ -286,7 +298,11 @@ function SessionTree(props: {
 }) {
   return (
     <div aria-label={COPY.sessions} className="atelier-tree">
-      {props.sessions.length === 0 ? <Empty mark="file">{COPY.noSessions}</Empty> : null}
+      {props.sessions.length === 0 ? (
+        <Empty emoji="📭" mark="file">
+          {COPY.noSessions}
+        </Empty>
+      ) : null}
       {props.grouped.buckets.map(bucket => (
         <ProjectNode
           bucket={bucket}
@@ -398,7 +414,10 @@ function GroupSave(props: { onSave: (title: string) => void }) {
       }}
     >
       <input aria-label={COPY.groupName} name="title" placeholder={COPY.groupName} />
-      <button type="submit">{COPY.newGroup}</button>
+      <button type="submit">
+        <Emoji symbol="➕" />
+        {COPY.newGroup}
+      </button>
     </form>
   )
 }
@@ -503,7 +522,11 @@ function WorkSteps(props: {
   const steps = props.card?.steps.filter(step => step.step.trim()) ?? []
 
   if (steps.length === 0 && props.manuscripts.length === 0) {
-    return <Empty mark="queue">{COPY.noChecklist}</Empty>
+    return (
+      <Empty emoji={SECTION_EMOJI.queue} mark="queue">
+        {COPY.noChecklist}
+      </Empty>
+    )
   }
 
   return (
@@ -561,7 +584,10 @@ function WorkflowSave(props: { onSave: (title: string) => void }) {
       }}
     >
       <input aria-label={COPY.workflowName} name="title" placeholder={COPY.workflowName} />
-      <button type="submit">{COPY.saveWorkflow}</button>
+      <button type="submit">
+        <Emoji symbol="➕" />
+        {COPY.saveWorkflow}
+      </button>
     </form>
   )
 }
@@ -575,7 +601,7 @@ function Face(props: { id: string; name: string; faces: Readonly<Record<string, 
   )
 }
 
-function Section(props: { title: string; mark: MarkName; children: ReactNode }) {
+function Section(props: { title: string; mark: MarkName; emoji: string; children: ReactNode }) {
   const [open, setOpen] = useState(true)
 
   return (
@@ -590,6 +616,7 @@ function Section(props: { title: string; mark: MarkName; children: ReactNode }) 
           <Mark name={open ? 'caret-down' : 'caret-right'} />
           <Mark name={props.mark} />
           <span>{props.title}</span>
+          <Emoji symbol={props.emoji} trail />
         </button>
       </h2>
       {open ? props.children : null}
@@ -597,10 +624,11 @@ function Section(props: { title: string; mark: MarkName; children: ReactNode }) 
   )
 }
 
-function Empty(props: { mark: MarkName; children: string }) {
+function Empty(props: { mark: MarkName; emoji: string; children: string }) {
   return (
     <p className="atelier-empty">
       <Mark name={props.mark} />
+      <Emoji symbol={props.emoji} />
       <span>{props.children}</span>
     </p>
   )

@@ -175,6 +175,19 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   margin-top: 6px;
 }
 
+.atelier-emoji {
+  display: inline-block;
+  flex: none;
+  font-size: 13px;
+  line-height: 1;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+.atelier-emoji--trail {
+  margin-inline-start: auto;
+  font-size: 12px;
+}
+
 .atelier-mark {
   display: block;
   flex: none;
@@ -501,6 +514,9 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 }
 
 .atelier-room-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
   overflow: hidden;
   font-size: 13px;

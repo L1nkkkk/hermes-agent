@@ -1,6 +1,6 @@
 import { COPY } from './copy'
 import { MarkdownView } from './markdown-view'
-import { Mark } from './marks'
+import { Emoji, Mark } from './marks'
 
 export function Reader(props: { title: string; markdown: string; crumbs: readonly string[]; fullPath?: string }) {
   const empty = !props.markdown.trim()
@@ -13,6 +13,7 @@ export function Reader(props: { title: string; markdown: string; crumbs: readonl
       <div className="atelier-reader__tabbar">
         <span className="atelier-reader__tab">
           <Mark name="file" />
+          <Emoji symbol={leaf.endsWith('.md') ? '📝' : '📄'} />
           <span>{leaf}</span>
         </span>
       </div>
@@ -26,6 +27,7 @@ export function Reader(props: { title: string; markdown: string; crumbs: readonl
             </span>
           ))}
         </div>
+        <Emoji symbol="🔎" />
         <button className="atelier-reader__source" disabled title={COPY.readerSourceHint} type="button">
           <Mark name="code" />
           <span>{COPY.source}</span>
@@ -48,6 +50,7 @@ export function Reader(props: { title: string; markdown: string; crumbs: readonl
         {empty ? (
           <p className="atelier-empty atelier-empty--reader">
             <Mark name="file" />
+            <Emoji symbol="📄" />
             <span>{COPY.noLog}</span>
           </p>
         ) : (

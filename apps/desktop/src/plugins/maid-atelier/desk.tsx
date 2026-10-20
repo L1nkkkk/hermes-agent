@@ -16,10 +16,10 @@ import {
   type ProgressModel,
   type Room
 } from './model'
-import { Mark } from './marks'
+import { Emoji, Mark } from './marks'
 import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
-import { goalBadgeFill, PRESENCE_FILL, type PresenceTone } from './theme'
+import { goalBadgeFill, goalEmoji, PRESENCE_FILL, type PresenceTone } from './theme'
 
 const TONE: Record<ProgressModel['tone'], PresenceTone> = {
   working: 'busy',
@@ -93,7 +93,10 @@ export function Desk(props: {
           ))}
         </div>
         <div className="atelier-room__copy">
-          <h1 className="atelier-room-title">{props.room.title}</h1>
+          <h1 className="atelier-room-title">
+            <Emoji symbol="💬" />
+            {props.room.title}
+          </h1>
           {props.room.kind === 'group' ? (
             <div className="atelier-room__meta">{COPY.groupRoom(props.room.members.length)}</div>
           ) : null}
@@ -191,6 +194,7 @@ export function Desk(props: {
           </button>
           <div className="atelier-composer__end">
             <span className="atelier-model">
+              <Emoji symbol="✨" />
               <Mark name="chip" />
               <span>{model || COPY.noModel}</span>
             </span>
@@ -252,6 +256,7 @@ function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hol
         <span className="atelier-goalstrip__badge" data-fill={badgeFill} style={{ background: badgeFill }}>
           <Mark name={tone === 'online' ? 'check' : 'goal'} />
         </span>
+        <Emoji symbol={goalEmoji(tone)} />
         <span className="atelier-goalstrip__goal">{sentence}</span>
         <span className="atelier-goalstrip__fraction">
           <Mark name="process" />
@@ -285,10 +290,12 @@ function TaskLog(props: {
       <section aria-label={COPY.workQueue} className="atelier-log">
         <p className="atelier-empty">
           <Mark name="file" />
+          <Emoji symbol="📄" />
           <span>{COPY.noLog}</span>
         </p>
         <p className="atelier-empty" data-empty="checklist">
           <Mark name="queue" />
+          <Emoji symbol="📋" />
           <span>{COPY.noChecklist}</span>
         </p>
       </section>
