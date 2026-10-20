@@ -84,9 +84,9 @@ export function Desk(props: {
         </div>
         <div className="atelier-room__copy">
           <h1 className="atelier-room-title">{props.room.title}</h1>
-          <div className="atelier-room__meta">
-            {props.room.kind === 'group' ? COPY.groupRoom(props.room.members.length) : COPY.privateRoom}
-          </div>
+          {props.room.kind === 'group' ? (
+            <div className="atelier-room__meta">{COPY.groupRoom(props.room.members.length)}</div>
+          ) : null}
         </div>
         <ProgressChip hold={props.chipHold} progress={props.progress} />
       </header>
@@ -200,12 +200,13 @@ function ProgressChip(props: { progress: ProgressModel; hold: MaidHold | null })
       role="status"
     >
       <Presence tone={tone} />
-      {props.progress.total > 0 ? null : <span className="atelier-progress__label">{label}</span>}
       {props.progress.total > 0 ? (
         <span className="atelier-progress__fraction">
           {COPY.process(props.progress.completed, props.progress.total)}
         </span>
-      ) : null}
+      ) : empty ? null : (
+        <span className="atelier-progress__label">{label}</span>
+      )}
     </div>
   )
 }

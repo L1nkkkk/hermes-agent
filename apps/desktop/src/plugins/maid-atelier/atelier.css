@@ -1,22 +1,27 @@
 .atelier {
-  --atelier-bg: #1b1c20;
-  --atelier-elevated: #23252b;
-  --atelier-hover: #2a2e36;
-  --atelier-text: #d2d5dc;
-  --atelier-strong: #f4f5f7;
-  --atelier-muted: #8e949e;
-  --atelier-border: #31343c;
+  --atelier-bg: #1e1f23;
+  --atelier-elevated: #26282e;
+  --atelier-hover: #2c3038;
+  --atelier-text: #d0d3da;
+  --atelier-strong: #f3f4f6;
+  --atelier-muted: #8b919b;
+  --atelier-border: #2c2e34;
   --atelier-accent: #7aa2d0;
   --atelier-goal: #60a5fa;
-  --atelier-select: #2c3a4e;
-  --atelier-ring: color-mix(in srgb, black 74%, var(--atelier-bg));
-  --atelier-rail: #16171b;
+  --atelier-select: #2a3648;
+  --atelier-ring: #1a1b1f;
+  --atelier-rail: #18191d;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1.05fr) minmax(360px, 1fr);
+  grid-template-columns: 252px minmax(0, 1fr) minmax(420px, 1.02fr);
+  width: 100%;
   height: 100%;
   min-height: 0;
   background: var(--atelier-bg);
   color: var(--atelier-text);
+  color-scheme: dark;
   font-family:
     system-ui,
     -apple-system,
@@ -307,8 +312,8 @@
 .atelier-draft__menu img,
 .atelier-mentions img,
 .atelier-msg img {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border: 1px solid color-mix(in srgb, var(--atelier-border) 72%, transparent);
   border-radius: 50%;
   object-fit: cover;
@@ -339,7 +344,7 @@
 .atelier-desk {
   display: flex;
   flex-direction: column;
-  background: #1e1f24;
+  background: var(--atelier-bg);
 }
 
 .atelier-desk__bar,
@@ -473,15 +478,18 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 8px 14px 12px;
+  padding: 14px 18px 18px;
 }
 
 .atelier-log {
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--atelier-border) 65%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
   color: var(--atelier-muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .atelier-log p,
@@ -523,17 +531,19 @@
 
 .atelier-msg {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
   gap: 8px;
-  margin: 8px 0;
+  margin: 11px 0;
 }
 
 .atelier-msg p {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   padding: 0;
   border-radius: 0;
   background: transparent;
-  color: #e4e6eb;
+  color: #e6e8ed;
+  font-size: 13.5px;
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
@@ -544,9 +554,10 @@
 }
 
 .atelier-msg[data-role='user'] p {
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: #2a3344;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #2a303a;
+  line-height: 1.55;
 }
 
 .atelier-msg--mention p {
@@ -554,12 +565,29 @@
 }
 
 .atelier-goalstrip {
-  margin: 0;
-  padding: 7px 14px 6px;
+  margin: 0 12px;
+  padding: 8px 2px 4px;
   border: 0;
   border-top: 1px solid var(--atelier-border);
   border-radius: 0;
-  background: #1a1c21;
+  background: transparent;
+}
+
+.atelier-goalstrip .atelier-pip {
+  width: 14px;
+  height: 14px;
+  border-width: 0;
+}
+
+.atelier-goalstrip[data-tone='online'] .atelier-pip::after {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 6px;
+  margin: 2px 0 0 5px;
+  border: solid #f4f7f4;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 
 .atelier-goalstrip__row {
@@ -584,11 +612,7 @@
 }
 
 .atelier-goalstrip__track {
-  height: 2px;
-  margin-top: 5px;
-  overflow: hidden;
-  border-radius: 99px;
-  background: #2c3038;
+  display: none;
 }
 
 .atelier-goalstrip__fill {
@@ -622,10 +646,10 @@
 }
 
 .atelier-composer {
-  margin: 8px 12px 10px;
-  border: 1px solid #343844;
-  border-radius: 12px;
-  background: #181a1f;
+  margin: 6px 12px 12px;
+  border: 1px solid #34363d;
+  border-radius: 14px;
+  background: #191b20;
 }
 
 .atelier-composer textarea,
@@ -671,13 +695,27 @@
 .atelier-workflow-save {
   display: flex;
   gap: 4px;
-  padding: 4px;
+  margin: 0 6px;
+  padding: 2px 0 4px;
+}
+
+.atelier-workflow-save input {
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.atelier-workflow-save button {
+  background: transparent;
+  color: var(--atelier-muted);
+  font-weight: 550;
 }
 
 .atelier-reader {
   display: flex;
   flex-direction: column;
-  background: #1c1d22;
+  background: var(--atelier-bg);
   border-inline-start: 1px solid var(--atelier-border);
 }
 
@@ -685,20 +723,20 @@
   display: flex;
   flex: none;
   align-items: end;
-  min-height: 30px;
-  padding: 0 8px;
-  background: #16171b;
+  min-height: 32px;
+  padding: 6px 10px 0;
+  background: var(--atelier-rail);
   border-bottom: 1px solid var(--atelier-border);
 }
 
 .atelier-reader__tab {
-  max-width: 100%;
+  max-width: min(100%, 420px);
   overflow: hidden;
-  padding: 6px 12px 5px;
+  padding: 6px 14px 7px;
   border: 1px solid var(--atelier-border);
   border-bottom: 0;
-  border-radius: 6px 6px 0 0;
-  background: #1c1d22;
+  border-radius: 7px 7px 0 0;
+  background: var(--atelier-bg);
   color: var(--atelier-strong);
   font-size: 12px;
   text-overflow: ellipsis;
@@ -750,16 +788,16 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 8px 32px 48px;
+  padding: 18px 36px 56px;
 }
 
 .atelier-reader__h1 {
-  margin: 20px 0 18px;
-  color: color-mix(in srgb, var(--atelier-goal) 28%, var(--atelier-strong));
-  font-size: 28px;
-  font-weight: 640;
+  margin: 8px 0 22px;
+  color: #eef2f7;
+  font-size: 30px;
+  font-weight: 620;
   letter-spacing: -0.03em;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .atelier-reader__body h2 {
