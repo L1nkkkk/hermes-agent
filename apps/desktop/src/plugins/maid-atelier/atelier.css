@@ -2,10 +2,10 @@
   --atelier-bg: #1e1f23;
   --atelier-elevated: #26282e;
   --atelier-hover: #2c3038;
-  --atelier-text: #d0d3da;
-  --atelier-strong: #f3f4f6;
-  --atelier-muted: #8b919b;
-  --atelier-border: #2c2e34;
+  --atelier-text: #d7dbe3;
+  --atelier-strong: #f5f6f8;
+  --atelier-muted: #b7bec8;
+  --atelier-border: #3a3e48;
   --atelier-accent: #7aa2d0;
   --atelier-goal: #60a5fa;
   --atelier-select: #2a3648;
@@ -31,6 +31,20 @@
     sans-serif;
   font-size: 13px;
   line-height: 1.45;
+}
+
+/* The host shell stays in the layout under this route. Drop its light sidebar,
+   statusbar, and titlebar clusters, and paint any remaining frame charcoal. */
+html[data-atelier-window='true'] body,
+html[data-atelier-window='true'] [data-contrib-shell] {
+  background: #18191d !important;
+  color-scheme: dark;
+}
+
+html[data-atelier-window='true'] [data-sidebar='sidebar'],
+html[data-atelier-window='true'] [data-slot='statusbar'],
+html[data-atelier-window='true'] [data-titlebar-cluster] {
+  display: none !important;
 }
 
 .atelier-pane {
