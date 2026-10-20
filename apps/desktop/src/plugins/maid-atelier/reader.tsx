@@ -138,6 +138,17 @@ export function Reader(props: { root: string | null; scope: WorkspaceScope }) {
             </span>
           ))}
         </div>
+        <label className="atelier-reader__search">
+          <Mark name="search" />
+          <input
+            aria-label={COPY.fileFilter}
+            disabled={!root}
+            onChange={event => setFilter(event.target.value)}
+            placeholder={COPY.fileFilter}
+            type="search"
+            value={filter}
+          />
+        </label>
         <button
           aria-pressed={mode === 'source'}
           className="atelier-reader__source"
@@ -176,13 +187,6 @@ export function Reader(props: { root: string | null; scope: WorkspaceScope }) {
       {root ? (
         <div className="atelier-reader__stage">
           <div aria-label={COPY.workspaceFiles} className="atelier-reader__files" role="navigation">
-            <input
-              aria-label={COPY.fileFilter}
-              onChange={event => setFilter(event.target.value)}
-              placeholder={COPY.fileFilter}
-              type="search"
-              value={filter}
-            />
             {listError ? <p className="atelier-empty">{listError}</p> : null}
             {shown.map(entry => (
               <button
@@ -199,15 +203,17 @@ export function Reader(props: { root: string | null; scope: WorkspaceScope }) {
             {!listError && shown.length === 0 ? <p className="atelier-empty">{COPY.emptyFolder}</p> : null}
           </div>
           <div className="atelier-reader__scroll">
-            <Preview
-              draft={draft}
-              editing={editing}
-              error={fileError}
-              file={file}
-              markdown={markdown}
-              mode={mode}
-              onDraft={setDraft}
-            />
+            <div className="atelier-reader__page">
+              <Preview
+                draft={draft}
+                editing={editing}
+                error={fileError}
+                file={file}
+                markdown={markdown}
+                mode={mode}
+                onDraft={setDraft}
+              />
+            </div>
           </div>
         </div>
       ) : (

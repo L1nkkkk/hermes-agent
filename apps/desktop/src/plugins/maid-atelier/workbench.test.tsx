@@ -135,8 +135,9 @@ describe('atelier workbench', () => {
     expect(screen.queryByRole('button', { name: 'Draft line' })).toBeNull()
     expect(screen.queryByLabelText('Add a step')).toBeNull()
     expect(screen.queryByText(/sample/i)).toBeNull()
-    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark').length).toBe(4)
-    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark--caret-down').length).toBe(2)
+    // Three clusters now (Groups / Maids / Work); each section header paints a caret and a mark.
+    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark').length).toBe(6)
+    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark--caret-down').length).toBe(3)
     expect(view?.querySelector('.atelier-you img')).toBeTruthy()
     expect(view?.querySelector('.atelier-you .atelier-pip')).toBeTruthy()
     expect(view?.querySelector('.atelier-goalstrip__badge .atelier-mark--goal')).toBeTruthy()
@@ -695,5 +696,206 @@ describe('atelier workbench', () => {
     fireEvent.click(view.container.querySelector('[data-atelier-profile="notes"] .atelier-row__main') as HTMLElement)
 
     expect(view.container.querySelector('[data-atelier-pane="main"]')?.textContent).not.toContain('alpha chat')
+  })
+})
+
+describe('atelier shell density (U2)', () => {
+  it('paints the quick band, a real Work cluster, and keeps You · Online locked', async () => {
+    const view = render(
+      <AtelierWorkbench gateway={gatewayFor([])} gatewayOpen notify={vi.fn()} storage={storage()} />
+    )
+
+    await screen.findByRole('checkbox', { name: 'In room Notes' })
+
+    const rail = view.container.querySelector('[data-atelier-pane="left"]') as HTMLElement
+    const band = screen.getByRole('toolbar', { name: 'Quick entries' })
+
+    expect(within(band).getAllByRole('button').map(node => node.getAttribute('aria-label'))).toEqual([
+      'New Maid',
+      'Quick Start',
+      'Review',
+      'Project',
+      'Service',
+      'More'
+    ])
+
+    // Nothing waits on the user yet, so Review is disabled and says why.
+    const review = within(band).getByRole('button', { name: 'Review' }) as HTMLButtonElement
+
+    expect(review.disabled).toBe(true)
+    expect(review.getAttribute('title')).toBe('Nothing to review')
+
+    // Quick Start focuses the composer that names the maid.
+    fireEvent.click(within(band).getByRole('button', { name: 'Quick Start' }))
+    expect(document.activeElement).toBe(screen.getByLabelText(/Message Harper/))
+
+    // More opens host routes instead of a fake panel.
+    fireEvent.click(within(band).getByRole('button', { name: 'More' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }))
+    expect(window.location.hash).toBe('#/settings')
+
+    // Empty work queue is honest, and the cluster exists above it.
+    expect(within(rail).getByText('Work')).toBeTruthy()
+    expect(within(rail).getByText('Nothing running')).toBeTruthy()
+
+    // The locked bottom bar is untouched by the band above it.
+    const you = rail.querySelector('.atelier-you') as HTMLElement
+
+    expect(you.querySelector('.atelier-quick')).toBeNull()
+    expect(you.querySelector('.atelier-you__name')?.textContent).toBe('You')
+    expect(you.querySelector('.atelier-you__status')?.getAttribute('data-tone')).toBe('online')
+    expect(you.querySelector('.atelier-you__status')?.textContent).toContain('Online')
+    expect(you.querySelector('.atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe(statusPaint('online'))
+    expect(rail.lastElementChild).toBe(you)
+  })
+
+  it('summarises real goal criteria and puts Process n/m on the bottom band', async () => {
+    const view = render(
+      <AtelierWorkbench
+        gateway={createGateway(
+          scripted(async (profileRow, method) => {
+            if (method === 'profiles.list') {
+              return { profiles: [{ name: 'harper', display_name: 'Harper' }] }
+            }
+
+            if (method === 'session.list' && profileRow.id === 'harper') {
+              return {
+                sessions: [{ id: 'deploy', title: 'volume_1', preview: 'rewriting ch07', started_at: 1 }]
+              }
+            }
+
+            if (method === 'session.active_list') {
+              return { sessions: [{ id: 'deploy', status: 'working' }] }
+            }
+
+            if (method === 'session.resume') {
+              return {
+                session_id: 'rt-deploy',
+                stored_session_id: 'deploy',
+                messages: [{ role: 'assistant', name: 'Harper', text: 'ch07 next' }],
+                running: true,
+                info: { cwd: '/work/hp02/manuscript' }
+              }
+            }
+
+            if (method === 'session.control.read') {
+              return {
+                control: {
+                  goal: {
+                    title: 'Ship volume 1',
+                    status: 'active',
+                    subgoals: ['Rewrite ch03', 'Review ch07'],
+                    gates: [
+                      { command: 'pytest -q', last_exit_code: 0 },
+                      { command: 'pnpm lint', last_exit_code: null }
+                    ]
+                  }
+                }
+              }
+            }
+
+            return {}
+          })
+        )}
+        gatewayOpen
+        notify={vi.fn()}
+        storage={storage()}
+      />
+    )
+
+    const session = await waitFor(() => {
+      const row = view.container.querySelector('.atelier-session')
+
+      if (!row) {
+        throw new Error('session missing')
+      }
+
+      return row
+    })
+
+    // The Work cluster repeats the live session with its preview sentence.
+    const rail = view.container.querySelector('[data-atelier-pane="left"]') as HTMLElement
+
+    expect(within(rail).getAllByText('rewriting ch07').length).toBe(2)
+
+    fireEvent.click(session)
+
+    await waitFor(() => {
+      const summary = view.container.querySelector('.atelier-summary')
+      const band = view.container.querySelector('.atelier-goalstrip')
+
+      expect(summary?.textContent).toContain('Ship volume 1')
+      expect(summary?.querySelectorAll('.atelier-summary__row').length).toBe(4)
+      expect(summary?.textContent).toContain('Rewrite ch03')
+      expect(summary?.querySelector('[data-kind="gate"][data-state="passed"] .atelier-mark--check')).toBeTruthy()
+      expect(summary?.querySelector('[data-kind="gate"][data-state="unrun"] .atelier-mark--dot')).toBeTruthy()
+      expect(band?.textContent).toContain('Process 1/2')
+      expect(band?.querySelector('.atelier-goalstrip__fill')?.getAttribute('style')).toContain('width: 50%')
+      expect(view.container.querySelector('.atelier-room__meta')?.textContent).toContain('hp02/manuscript')
+      expect(view.container.querySelector('.atelier-thread .atelier-summary')).toBeTruthy()
+    })
+  })
+
+  it('filters workspace files from the reader toolbar search slot', async () => {
+    installFiles('/work/toolbar', '# Toolbar\n\nbody')
+
+    const view = render(
+      <AtelierWorkbench
+        gateway={createGateway(
+          scripted(async (profileRow, method) => {
+            if (method === 'profiles.list') {
+              return { profiles: [{ name: 'harper', display_name: 'Harper' }] }
+            }
+
+            if (method === 'session.list' && profileRow.id === 'harper') {
+              return { sessions: [{ id: 'deploy', title: 'toolbar', preview: '', started_at: 1, cwd: '/work/toolbar' }] }
+            }
+
+            if (method === 'session.active_list') {
+              return { sessions: [] }
+            }
+
+            if (method === 'session.resume') {
+              return {
+                session_id: 'rt-deploy',
+                stored_session_id: 'deploy',
+                messages: [],
+                running: false,
+                info: { cwd: '/work/toolbar' }
+              }
+            }
+
+            return {}
+          })
+        )}
+        gatewayOpen
+        notify={vi.fn()}
+        storage={storage()}
+      />
+    )
+
+    const session = await waitFor(() => {
+      const row = view.container.querySelector('.atelier-session')
+
+      if (!row) {
+        throw new Error('session missing')
+      }
+
+      return row
+    })
+
+    fireEvent.click(session)
+    await screen.findByRole('button', { name: 'chapter.md' })
+
+    const slot = view.container.querySelector('.atelier-reader__toolbar .atelier-reader__search input')
+
+    expect(slot).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Filter files'), { target: { value: 'nope' } })
+    expect(screen.queryByRole('button', { name: 'chapter.md' })).toBeNull()
+    expect(screen.getByText('Empty folder')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Filter files'), { target: { value: 'chap' } })
+    expect(screen.getByRole('button', { name: 'chapter.md' })).toBeTruthy()
   })
 })

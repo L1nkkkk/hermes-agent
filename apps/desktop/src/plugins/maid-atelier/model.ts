@@ -18,10 +18,57 @@ export type ProgressCard = {
   steps: ProgressStep[]
 }
 
+export type GoalGate = {
+  command: string
+  /** `session.control.read` reports null until the gate has run. */
+  exitCode: number | null
+}
+
 export type GoalFacts = {
   objective: string
   status?: string
   lastStatusNote?: string
+  /** Criteria the goal control really carries: `/subgoal` entries and `gate` commands. */
+  subgoals?: string[]
+  gates?: GoalGate[]
+  turnsUsed?: number
+  maxTurns?: number
+}
+
+export type GateState = 'passed' | 'failed' | 'unrun'
+
+/** A gate is only passed or failed when control reported an exit code. */
+export function gateState(gate: GoalGate): GateState {
+  if (gate.exitCode === null) {
+    return 'unrun'
+  }
+
+  return gate.exitCode === 0 ? 'passed' : 'failed'
+}
+
+export type SummaryRow =
+  | { kind: 'subgoal'; index: number; text: string }
+  | { kind: 'gate'; command: string; state: GateState }
+
+/** Structured work summary: only what the goal control actually reported. */
+export function goalSummary(goal: GoalFacts | null | undefined): SummaryRow[] {
+  if (!goal) {
+    return []
+  }
+
+  const rows: SummaryRow[] = (goal.subgoals ?? []).flatMap((text, index) =>
+    text.trim() ? [{ kind: 'subgoal' as const, index: index + 1, text: text.trim() }] : []
+  )
+
+  for (const gate of goal.gates ?? []) {
+    const command = gate.command.trim()
+
+    if (command) {
+      rows.push({ kind: 'gate', command, state: gateState(gate) })
+    }
+  }
+
+  return rows
 }
 
 export type MentionAgent = {
@@ -351,12 +398,32 @@ function progressFromGoal(goal: GoalFacts | null | undefined, activeRun: boolean
       source: 'goal',
       target: maidClip(goal.lastStatusNote || goal.objective, 80),
       tone: done ? 'completed' : attention ? 'attention' : goal.status === 'active' || activeRun ? 'working' : 'idle',
-      completed: 0,
-      total: 0
+      ...goalFraction(goal)
     }
   }
 
   return { source: 'empty', target: '', tone: 'idle', completed: 0, total: 0 }
+}
+
+/**
+ * Process n/m from the goal control alone: passing gates first, then the turn
+ * budget it reports. Nothing is inferred when control reports neither.
+ */
+function goalFraction(goal: GoalFacts): { completed: number; total: number } {
+  const gates = goal.gates ?? []
+
+  if (gates.length > 0) {
+    return { completed: gates.filter(gate => gateState(gate) === 'passed').length, total: gates.length }
+  }
+
+  const total = goal.maxTurns ?? 0
+  const used = goal.turnsUsed ?? 0
+
+  if (total > 0 && used > 0) {
+    return { completed: Math.min(used, total), total }
+  }
+
+  return { completed: 0, total: 0 }
 }
 
 function markdownTarget(markdown: string): string {

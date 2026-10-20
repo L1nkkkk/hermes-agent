@@ -1,6 +1,6 @@
 import { host, type PluginProfileRoute } from '@hermes/plugin-sdk'
 
-import { type GoalFacts, type MaidHold, maidPresenceHold } from './model'
+import { type GoalFacts, type GoalGate, type MaidHold, maidPresenceHold } from './model'
 
 export type AtelierProfile = {
   id: string
@@ -407,7 +407,46 @@ function parseGoal(value: unknown): GoalFacts | null {
   const status = text(record.status) || undefined
   const note = text(record.last_reason) || text(record.paused_reason) || undefined
 
-  return { objective, status, lastStatusNote: note }
+  return {
+    objective,
+    status,
+    lastStatusNote: note,
+    subgoals: stringList(record.subgoals),
+    gates: gateList(record.gates),
+    turnsUsed: count(record.turns_used),
+    maxTurns: count(record.max_turns)
+  }
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.flatMap(item => (typeof item === 'string' && item.trim() ? [item.trim()] : [])) : []
+}
+
+function gateList(value: unknown): GoalGate[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const gates: GoalGate[] = []
+
+  for (const row of value) {
+    if (!row || typeof row !== 'object') {
+      continue
+    }
+
+    const record = row as Record<string, unknown>
+    const command = text(record.command)
+
+    if (command) {
+      gates.push({ command, exitCode: typeof record.last_exit_code === 'number' ? record.last_exit_code : null })
+    }
+  }
+
+  return gates
+}
+
+function count(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0
 }
 
 function sessionIdOf(value: unknown, key: string): string | null {

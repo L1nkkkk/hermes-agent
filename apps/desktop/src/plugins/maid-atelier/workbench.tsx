@@ -8,6 +8,7 @@ import { childStorageKey, type DeskRecords, readDesk, writeDesk } from './desk-s
 import { useAtelierFeeds } from './feeds'
 import type { AtelierGateway, AtelierProfile } from './gateway'
 import { type MaidHold, maidPresenceHold, maidRoom, resolveMaidProgress, roomAgents } from './model'
+import { pathTail } from './paths'
 import { Rail } from './rail'
 import { Reader } from './reader'
 import { accentVars, type PresenceTone } from './theme'
@@ -22,6 +23,7 @@ export function AtelierWorkbench(props: {
   const [composer, setComposer] = useState('')
   const [caret, setCaret] = useState(0)
   const [listEpoch, setListEpoch] = useState(0)
+  const [focusKey, setFocusKey] = useState(0)
   const hostCwd = useValue(host.state.cwd).trim()
   const connectionId = useValue(host.state.connectionId)
   const hostProfile = useValue(host.state.profile)
@@ -132,6 +134,9 @@ export function AtelierWorkbench(props: {
           setSessionId(null)
         }}
         onSelectSession={setSessionId}
+        onFocusComposer={() => setFocusKey(key => key + 1)}
+        onOpenChat={() => host.navigate(sessionId ? `/${encodeURIComponent(sessionId)}` : '/')}
+        onOpenService={() => host.navigate('/settings')}
         onToggleMember={id => {
           if (!ownerId || id === ownerId) {
             return
@@ -154,6 +159,7 @@ export function AtelierWorkbench(props: {
         chipHold={chipHold}
         composer={composer}
         faces={records.faces}
+        focusKey={focusKey}
         goal={goal}
         memberIds={memberIds}
         messages={messages}
@@ -191,11 +197,17 @@ export function AtelierWorkbench(props: {
         progress={progress}
         room={room}
         sessionId={sessionId}
+        workspaceTail={workspaceTailOf(sessionRoot)}
         youTone={props.gatewayOpen ? 'online' : 'blocked'}
       />
       <Reader root={sessionId ? sessionRoot : hostCwd || null} scope={scope} />
     </div>
   )
+}
+
+/** Two-segment workspace tail for the desk header; empty when no session root. */
+function workspaceTailOf(root: string | null): string {
+  return root ? pathTail(root, 2).join('/') : ''
 }
 
 function childKeysFor(children: Record<string, string>, roomId: string): Record<string, string> {

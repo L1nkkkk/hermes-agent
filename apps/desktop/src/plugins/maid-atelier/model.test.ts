@@ -4,6 +4,7 @@ import {
   applyMaidMention,
   draftCandidates,
   findMaidMentionTarget,
+  goalSummary,
   maidMentionTokens,
   maidPresenceHold,
   maidPullDraft,
@@ -48,6 +49,55 @@ describe('maid progress', () => {
     })
 
     expect(model).toMatchObject({ source: 'progress', completed: 1, total: 2, target: 'ship' })
+  })
+
+  it('takes Process n/m from the goal control only', () => {
+    expect(
+      resolveMaidProgress({
+        goal: {
+          objective: 'Ship volume 1',
+          status: 'active',
+          gates: [
+            { command: 'pytest -q', exitCode: 0 },
+            { command: 'pnpm lint', exitCode: null }
+          ]
+        }
+      })
+    ).toMatchObject({ completed: 1, total: 2 })
+
+    expect(resolveMaidProgress({ goal: { objective: 'Ship', turnsUsed: 4, maxTurns: 5 } })).toMatchObject({
+      completed: 4,
+      total: 5
+    })
+
+    // A goal with neither gates nor turns reports no fraction at all.
+    expect(resolveMaidProgress({ goal: { objective: 'Ship', status: 'blocked' } })).toMatchObject({
+      completed: 0,
+      total: 0
+    })
+  })
+})
+
+describe('goal summary', () => {
+  it('lists only the subgoals and gates control reported', () => {
+    expect(goalSummary(null)).toEqual([])
+    expect(goalSummary({ objective: 'Ship' })).toEqual([])
+    expect(
+      goalSummary({
+        objective: 'Ship',
+        subgoals: ['Rewrite ch03', '  ', 'Review ch07'],
+        gates: [
+          { command: 'pytest -q', exitCode: 0 },
+          { command: 'pnpm lint', exitCode: 2 },
+          { command: '  ', exitCode: null }
+        ]
+      })
+    ).toEqual([
+      { kind: 'subgoal', index: 1, text: 'Rewrite ch03' },
+      { kind: 'subgoal', index: 3, text: 'Review ch07' },
+      { kind: 'gate', command: 'pytest -q', state: 'passed' },
+      { kind: 'gate', command: 'pnpm lint', state: 'failed' }
+    ])
   })
 })
 
