@@ -34,7 +34,7 @@ const plugin: HermesPlugin = {
   id: 'maid-atelier',
   name: 'Maid Atelier',
   description:
-    'Three-column Maid Atelier workbench inside the workspace pane. Host sidebar, settings, model picker, and window chrome stay the real controls.',
+    'Workbench inside the workspace pane: sessions on the left, chat in the center, and the session workspace on the right. Host sidebar, settings, and window chrome stay the real controls.',
   defaultEnabled: true,
   register(ctx) {
     const page = () => <AtelierPage storage={ctx.storage} />

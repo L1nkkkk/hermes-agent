@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 
-import { COPY } from './copy'
 import type {
   AtelierGateway,
   AtelierMessage,
@@ -9,15 +8,12 @@ import type {
   AtelierSession,
   AtelierTranscript
 } from './gateway'
-import { type GoalFacts, type MaidHold, type ProgressCard, transcriptMarkdown } from './model'
-import { workspaceCrumbs } from './paths'
-import { emptyProgressCard, progressKey, type ProgressShelf } from './progress-store'
+import type { GoalFacts, MaidHold } from './model'
 import type { PresenceTone } from './theme'
 
 export function useAtelierFeeds(input: {
   gateway: AtelierGateway
   gatewayOpen: boolean
-  shelf: ProgressShelf
   /** Bumps after `session.create` so the rail re-reads `session.list`. */
   listEpoch: number
 }) {
@@ -30,11 +26,7 @@ export function useAtelierFeeds(input: {
   const [messages, setMessages] = useState<AtelierMessage[]>([])
   const [goal, setGoal] = useState<GoalFacts | null>(null)
   const [running, setRunning] = useState(false)
-  const [card, setCard] = useState<ProgressCard | null>(null)
-  const [readerTitle, setReaderTitle] = useState('')
-  const [readerCrumbs, setReaderCrumbs] = useState<string[]>([])
-  const [readerPath, setReaderPath] = useState('')
-  const [readerBody, setReaderBody] = useState('')
+  const [workspacePath, setWorkspacePath] = useState<string | null>(null)
   const [sessionHolds, setSessionHolds] = useState<Record<string, MaidHold>>({})
   const owner = profiles.find(profile => profile.id === ownerId) ?? null
 
@@ -134,11 +126,7 @@ export function useAtelierFeeds(input: {
       setMessages([])
       setGoal(null)
       setRunning(false)
-      setCard(null)
-      setReaderTitle('')
-      setReaderCrumbs([])
-      setReaderPath('')
-      setReaderBody('')
+      setWorkspacePath(null)
 
       return () => {
         live = false
@@ -146,26 +134,14 @@ export function useAtelierFeeds(input: {
     }
 
     const selected = sessionId
-    setCard(input.shelf.read(progressKey(selected)) ?? emptyProgressCard(selected))
+    setWorkspacePath(null)
 
     const pull = () => {
       input.gateway
         .resume(owner, selected)
         .then(transcript => {
           if (live) {
-            paintTranscript(
-              transcript,
-              selected,
-              sessions,
-              setMessages,
-              setGoal,
-              setRunning,
-              setSessionHolds,
-              setReaderTitle,
-              setReaderCrumbs,
-              setReaderPath,
-              setReaderBody
-            )
+            paintTranscript(transcript, selected, setMessages, setGoal, setRunning, setSessionHolds, setWorkspacePath)
           }
         })
         .catch(() => {
@@ -182,7 +158,7 @@ export function useAtelierFeeds(input: {
       live = false
       window.clearInterval(timer)
     }
-  }, [owner, input.gateway, sessionId, sessions, input.shelf])
+  }, [owner, input.gateway, sessionId])
 
   return {
     profiles,
@@ -198,12 +174,7 @@ export function useAtelierFeeds(input: {
     setMessages,
     goal,
     running,
-    card,
-    setCard,
-    readerTitle,
-    readerCrumbs,
-    readerPath,
-    readerBody,
+    workspacePath,
     sessionHolds
   }
 }
@@ -211,33 +182,17 @@ export function useAtelierFeeds(input: {
 function paintTranscript(
   transcript: AtelierTranscript,
   selected: string,
-  sessions: readonly AtelierSession[],
   setMessages: (messages: AtelierMessage[]) => void,
   setGoal: (goal: GoalFacts | null) => void,
   setRunning: (running: boolean) => void,
   setSessionHolds: (update: (current: Record<string, MaidHold>) => Record<string, MaidHold>) => void,
-  setReaderTitle: (title: string) => void,
-  setReaderCrumbs: (crumbs: string[]) => void,
-  setReaderPath: (path: string) => void,
-  setReaderBody: (body: string) => void
+  setWorkspacePath: (path: string | null) => void
 ) {
   setMessages(transcript.messages)
   setGoal(transcript.goal)
   setRunning(transcript.running)
   setSessionHolds(current => holdPatch(current, selected, transcript.sessionHold))
-  const listed = sessions.find(session => session.id === selected)
-  const title = listed?.title || COPY.currentSession
-  const path = transcript.workspacePath || listed?.gitRepoRoot || listed?.cwd || null
-
-  setReaderTitle(title)
-  setReaderCrumbs(workspaceCrumbs({ path, title }))
-  setReaderPath(path || '')
-  setReaderBody(
-    transcriptMarkdown(
-      title,
-      transcript.messages.map(message => ({ name: message.name, text: message.text }))
-    )
-  )
+  setWorkspacePath(transcript.workspacePath)
 }
 
 async function profilePresence(

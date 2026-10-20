@@ -1,15 +1,13 @@
-import type { PluginStorage } from '@hermes/plugin-sdk'
+import { host, type PluginStorage, useValue } from '@hermes/plugin-sdk'
 import { useMemo, useState } from 'react'
 
-import { draftLine, saveStepPlan, sendComposer, sessionTitleFromMessage, toggleStep } from './actions'
+import { sendComposer, sessionTitleFromMessage } from './actions'
 import { COPY } from './copy'
 import { Desk } from './desk'
-import { childStorageKey, type DeskRecords, readDesk, type Workflow, writeDesk } from './desk-store'
+import { childStorageKey, type DeskRecords, readDesk, writeDesk } from './desk-store'
 import { useAtelierFeeds } from './feeds'
-import type { AtelierGateway, AtelierProfile, AtelierSession } from './gateway'
-import { type MaidHold, maidManuscript, maidPresenceHold, maidRoom, resolveMaidProgress, roomAgents } from './model'
-import { fullWorkspacePath } from './paths'
-import { emptyProgressCard, pluginProgressShelf } from './progress-store'
+import type { AtelierGateway, AtelierProfile } from './gateway'
+import { type MaidHold, maidPresenceHold, maidRoom, resolveMaidProgress, roomAgents } from './model'
 import { Rail } from './rail'
 import { Reader } from './reader'
 import { accentVars, type PresenceTone } from './theme'
@@ -20,13 +18,13 @@ export function AtelierWorkbench(props: {
   gatewayOpen: boolean
   notify: (message: string, kind: 'error' | 'info') => void
 }) {
-  const shelf = useMemo(() => pluginProgressShelf(props.storage), [props.storage])
   const [records, setRecords] = useState<DeskRecords>(() => readDesk(props.storage))
   const [composer, setComposer] = useState('')
   const [caret, setCaret] = useState(0)
-  const [pullOpen, setPullOpen] = useState(false)
-  const [editingFace, setEditingFace] = useState<string | null>(null)
   const [listEpoch, setListEpoch] = useState(0)
+  const hostCwd = useValue(host.state.cwd).trim()
+  const connectionId = useValue(host.state.connectionId)
+  const hostProfile = useValue(host.state.profile)
 
   const {
     profiles,
@@ -42,14 +40,9 @@ export function AtelierWorkbench(props: {
     setMessages,
     goal,
     running,
-    card,
-    setCard,
-    readerTitle,
-    readerCrumbs,
-    readerPath,
-    readerBody,
+    workspacePath,
     sessionHolds
-  } = useAtelierFeeds({ gateway: props.gateway, gatewayOpen: props.gatewayOpen, shelf, listEpoch })
+  } = useAtelierFeeds({ gateway: props.gateway, gatewayOpen: props.gatewayOpen, listEpoch })
 
   const memberIds = ownerId ? (records.members[ownerId] ?? []) : []
   const names = Object.fromEntries(profiles.map(profile => [profile.id, profile.name]))
@@ -66,39 +59,35 @@ export function AtelierWorkbench(props: {
   const roomId = sessionId || ownerId || 'atelier'
   const childKeys = childKeysFor(records.children, roomId)
   const sessionTitle = sessions.find(session => session.id === sessionId)?.title ?? ''
+  const listed = sessions.find(session => session.id === sessionId)
+  const sessionRoot = sessionId ? workspacePath || listed?.gitRepoRoot || listed?.cwd || null : null
 
   const progress = resolveMaidProgress({
-    steps: card?.steps,
-    markdown: card?.markdown,
     goal,
     title: sessionId ? sessionTitle : '',
     activeRun: running
   })
 
-  const manuscripts = sessions
-    .filter(session => maidManuscript(session.title))
-    .map(session => ({ id: session.id, label: session.title }))
-
   const goalHold = maidPresenceHold({ status: goal?.status })
   const chipHold = goalHold ?? (sessionId ? (sessionHolds[sessionId] ?? null) : null)
   const presenceView = presenceWithHolds(presence, ownerId, sessions, sessionHolds)
+
+  const scope = useMemo(
+    () => ({ connectionId, profile: owner?.id || hostProfile || null }),
+    [connectionId, hostProfile, owner?.id]
+  )
 
   const persist = (next: DeskRecords) => {
     setRecords(next)
     writeDesk(props.storage, next)
   }
 
-  const failStep = () => props.notify(COPY.stepFailed, 'error')
-
   return (
     <div className="atelier" style={accentVars()}>
       <Rail
-        card={card}
         faces={records.faces}
         gatewayOpen={props.gatewayOpen}
-        goalHold={goalHold}
         groups={records.groups}
-        manuscripts={manuscripts}
         memberIds={memberIds}
         onAssignGroup={(profileId, groupId) => {
           persist({
@@ -125,8 +114,6 @@ export function AtelierWorkbench(props: {
             })
             .catch(() => props.notify(COPY.sessionFailed, 'error'))
         }}
-        onOpenManuscript={setSessionId}
-        onOpenWorkflow={workflow => openWorkflow(workflow, setOwnerId, setSessionId, persist, records)}
         onSaveGroup={title => {
           if (!ownerId) {
             return
@@ -135,16 +122,6 @@ export function AtelierWorkbench(props: {
           persist({
             ...records,
             groups: [...records.groups, { id: workflowId(), title, profileIds: [ownerId] }]
-          })
-        }}
-        onSaveWorkflow={title => {
-          if (!ownerId) {
-            return
-          }
-
-          persist({
-            ...records,
-            workflows: [...records.workflows, { id: workflowId(), title, memberIds }]
           })
         }}
         onSelectProfile={id => {
@@ -160,16 +137,6 @@ export function AtelierWorkbench(props: {
           const next = memberIds.includes(id) ? memberIds.filter(item => item !== id) : [...memberIds, id]
           persist({ ...records, members: { ...records.members, [ownerId]: next } })
         }}
-        onToggleStep={index => {
-          if (!sessionId || !card) {
-            failStep()
-
-            return
-          }
-
-          const saved = toggleStep(shelf, sessionId, card, index)
-          saved ? setCard(saved) : failStep()
-        }}
         ownerId={ownerId}
         presence={presenceView}
         profiles={profiles}
@@ -177,43 +144,19 @@ export function AtelierWorkbench(props: {
         sessionHolds={sessionHolds}
         sessionId={sessionId}
         sessions={sessions}
-        workflows={records.workflows}
         youName={COPY.you}
       />
       <Desk
-        card={card}
         caret={caret}
         chipHold={chipHold}
         composer={composer}
-        editingFace={editingFace}
         faces={records.faces}
         goal={goal}
-        goalHold={goalHold}
         memberIds={memberIds}
         messages={messages}
-        onAddStep={label => {
-          if (!sessionId) {
-            failStep()
-
-            return
-          }
-
-          const basis = card ?? emptyProgressCard(sessionId)
-          const saved = saveStepPlan(shelf, sessionId, basis, [...basis.steps, { step: label, status: 'pending' }])
-          saved ? setCard(saved) : failStep()
-        }}
         onComposer={(value, nextCaret) => {
           setComposer(value)
           setCaret(nextCaret)
-        }}
-        onDraft={agent => {
-          setComposer(draftLine(composer, agent.name))
-          setPullOpen(false)
-        }}
-        onEditFace={setEditingFace}
-        onPickFace={(id, index) => {
-          persist({ ...records, faces: { ...records.faces, [id]: index } })
-          setEditingFace(null)
         }}
         onSend={() => {
           void sendCurrent({
@@ -240,51 +183,16 @@ export function AtelierWorkbench(props: {
             echo: text => setMessages(current => [...current, { role: 'user', name: COPY.you, text }])
           })
         }}
-        onTogglePull={() => setPullOpen(open => !open)}
-        onToggleStep={index => {
-          if (!sessionId || !card) {
-            failStep()
-
-            return
-          }
-
-          const saved = toggleStep(shelf, sessionId, card, index)
-          saved ? setCard(saved) : failStep()
-        }}
         ownerId={owner?.id ?? ''}
         profiles={profiles.map(profile => ({ id: profile.id, name: profile.name }))}
         progress={progress}
-        pullOpen={pullOpen}
         room={room}
         sessionId={sessionId}
         youTone={props.gatewayOpen ? 'online' : 'blocked'}
       />
-      <Reader
-        crumbs={readerCrumbs}
-        fullPath={fullWorkspacePath({ path: readerPath, title: readerTitle })}
-        markdown={readerBody}
-        title={readerTitle}
-      />
+      <Reader root={sessionId ? sessionRoot : hostCwd || null} scope={scope} />
     </div>
   )
-}
-
-function openWorkflow(
-  workflow: Workflow,
-  setOwnerId: (id: string) => void,
-  setSessionId: (id: string | null) => void,
-  persist: (next: DeskRecords) => void,
-  records: DeskRecords
-) {
-  const owner = workflow.memberIds[0]
-
-  if (!owner) {
-    return
-  }
-
-  setOwnerId(owner)
-  setSessionId(null)
-  persist({ ...records, members: { ...records.members, [owner]: workflow.memberIds.slice(1) } })
 }
 
 function childKeysFor(children: Record<string, string>, roomId: string): Record<string, string> {
@@ -303,7 +211,7 @@ function childKeysFor(children: Record<string, string>, roomId: string): Record<
 function presenceWithHolds(
   presence: Readonly<Record<string, PresenceTone>>,
   ownerId: string | null,
-  sessions: readonly AtelierSession[],
+  sessions: readonly { id: string }[],
   holds: Readonly<Record<string, MaidHold>>
 ): Record<string, PresenceTone> {
   if (!ownerId) {

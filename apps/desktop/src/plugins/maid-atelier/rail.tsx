@@ -1,20 +1,18 @@
 import { type ReactNode, useState } from 'react'
 
 import { COPY } from './copy'
-import type { MaidGroup, Workflow } from './desk-store'
+import type { MaidGroup } from './desk-store'
 import type { AtelierProfile, AtelierProject, AtelierSession } from './gateway'
 import { Emoji, Mark, type MarkName } from './marks'
-import { type MaidHold, maidManuscript, type ProgressCard } from './model'
+import type { MaidHold } from './model'
 import { groupSessions, type SessionBucket } from './paths'
 import { portraitSrc } from './portraits'
-import { Presence, StepPresence } from './presence'
+import { Presence } from './presence'
 import { type PresenceTone, TONE_EMOJI } from './theme'
 
 const SECTION_EMOJI = {
   groups: '⭐',
-  maid: '👤',
-  queue: '📋',
-  workflow: '🔀'
+  maid: '👤'
 } as const
 
 const LOUD: ReadonlySet<PresenceTone> = new Set(['busy', 'pending', 'blocked', 'attention'])
@@ -32,7 +30,6 @@ const TONE_LABEL: Record<PresenceTone, string> = {
 export function Rail(props: {
   profiles: readonly AtelierProfile[]
   sessions: readonly AtelierSession[]
-  workflows: readonly Workflow[]
   ownerId: string | null
   sessionId: string | null
   memberIds: readonly string[]
@@ -42,19 +39,12 @@ export function Rail(props: {
   faces: Readonly<Record<string, number>>
   groups: readonly MaidGroup[]
   projects: readonly AtelierProject[]
-  card: ProgressCard | null
-  goalHold: MaidHold | null
   sessionHolds: Readonly<Record<string, MaidHold>>
   onSelectProfile: (id: string) => void
   onToggleMember: (id: string) => void
   onSelectSession: (id: string) => void
-  onOpenWorkflow: (workflow: Workflow) => void
-  onSaveWorkflow: (title: string) => void
   onSaveGroup: (title: string) => void
   onAssignGroup: (profileId: string, groupId: string | null) => void
-  onToggleStep: (index: number) => void
-  manuscripts: readonly { id: string; label: string }[]
-  onOpenManuscript: (id: string) => void
   onCreateSession: () => void
 }) {
   const [query, setQuery] = useState('')
@@ -131,34 +121,6 @@ export function Rail(props: {
             <Emoji symbol="➕" />
             <span className="atelier-row__name">{COPY.newSession}</span>
           </button>
-        </Section>
-        <Section emoji={SECTION_EMOJI.queue} mark="queue" title={COPY.workQueue}>
-          <WorkSteps
-            card={props.card}
-            goalHold={props.goalHold}
-            manuscripts={props.manuscripts}
-            onOpenManuscript={props.onOpenManuscript}
-            onToggleStep={props.onToggleStep}
-          />
-        </Section>
-        <Section emoji={SECTION_EMOJI.workflow} mark="workflow" title={COPY.workflows}>
-          {props.workflows.length === 0 ? (
-            <Empty emoji={SECTION_EMOJI.workflow} mark="workflow">
-              {COPY.noWorkflows}
-            </Empty>
-          ) : null}
-          {props.workflows.map(workflow => (
-            <button
-              className="atelier-session"
-              key={workflow.id}
-              onClick={() => props.onOpenWorkflow(workflow)}
-              type="button"
-            >
-              <Mark name="workflow" />
-              <span className="atelier-row__name">{workflow.title}</span>
-            </button>
-          ))}
-          <WorkflowSave onSave={props.onSaveWorkflow} />
         </Section>
       </div>
       <header className="atelier-you">
@@ -520,86 +482,6 @@ function sessionAge(updatedAt: number, now = Date.now()): string {
   }
 
   return `${Math.floor(hours / 24)}d`
-}
-
-function WorkSteps(props: {
-  card: ProgressCard | null
-  goalHold: MaidHold | null
-  manuscripts: readonly { id: string; label: string }[]
-  onOpenManuscript: (id: string) => void
-  onToggleStep: (index: number) => void
-}) {
-  const steps = props.card?.steps.filter(step => step.step.trim()) ?? []
-
-  if (steps.length === 0 && props.manuscripts.length === 0) {
-    return (
-      <Empty emoji={SECTION_EMOJI.queue} mark="queue">
-        {COPY.noChecklist}
-      </Empty>
-    )
-  }
-
-  return (
-    <ul className="atelier-steps">
-      {steps.map((step, index) => (
-        <li key={`${index}:${step.step}`}>
-          <button
-            aria-checked={step.status === 'completed'}
-            className="atelier-step"
-            data-done={step.status === 'completed' ? 'true' : 'false'}
-            data-readonly-label="true"
-            onClick={() => props.onToggleStep(index)}
-            role="checkbox"
-            type="button"
-          >
-            <span aria-hidden="true" className="atelier-step__box">
-              {step.status === 'completed' ? <Mark name="check" /> : null}
-            </span>
-            <StepPresence goalHold={props.goalHold} status={step.status} />
-            <span>{step.step}</span>
-          </button>
-        </li>
-      ))}
-      {props.manuscripts.map(item => (
-        <li key={item.id}>
-          <button
-            className="atelier-step"
-            data-manuscript="true"
-            onClick={() => props.onOpenManuscript(item.id)}
-            type="button"
-          >
-            <Mark name="file" />
-            <span>{item.label}</span>
-            {maidManuscript(item.label) ? <span className="atelier-refine">{COPY.refine}</span> : null}
-          </button>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function WorkflowSave(props: { onSave: (title: string) => void }) {
-  return (
-    <form
-      className="atelier-workflow-save"
-      onSubmit={event => {
-        event.preventDefault()
-        const data = new FormData(event.currentTarget)
-        const title = String(data.get('title') || '').trim()
-
-        if (title) {
-          props.onSave(title)
-          event.currentTarget.reset()
-        }
-      }}
-    >
-      <input aria-label={COPY.workflowName} name="title" placeholder={COPY.workflowName} />
-      <button type="submit">
-        <Emoji symbol="➕" />
-        {COPY.saveWorkflow}
-      </button>
-    </form>
-  )
 }
 
 function Face(props: { id: string; name: string; faces: Readonly<Record<string, number>>; tone?: PresenceTone }) {
