@@ -141,11 +141,11 @@ export function Rail(props: {
         </Section>
       </div>
       <header className="atelier-you">
-        <Face faces={props.faces} id="user" name={props.youName} tone={props.gatewayOpen ? 'online' : 'unknown'} />
+        <Face faces={props.faces} id="user" name={props.youName} tone="online" />
         <div>
           <div className="atelier-you__name">{props.youName}</div>
-          <div className="atelier-you__status">
-            <Presence named={false} tone={props.gatewayOpen ? 'online' : 'unknown'} />
+          <div className="atelier-you__status" data-tone={props.gatewayOpen ? 'online' : 'blocked'}>
+            <Presence named={false} tone={props.gatewayOpen ? 'online' : 'blocked'} />
             <span>{props.gatewayOpen ? COPY.online : COPY.offline}</span>
           </div>
         </div>

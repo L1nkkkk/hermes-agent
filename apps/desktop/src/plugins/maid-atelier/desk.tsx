@@ -19,7 +19,7 @@ import {
 import { Mark } from './marks'
 import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
-import type { PresenceTone } from './theme'
+import { goalBadgeFill, type PresenceTone } from './theme'
 
 const TONE: Record<ProgressModel['tone'], PresenceTone> = {
   working: 'busy',
@@ -80,6 +80,7 @@ export function Desk(props: {
             <button
               aria-label={COPY.changeFace(member.name)}
               className="atelier-room__face"
+              data-kind={member.kind}
               key={member.id}
               onClick={() => props.onEditFace(member.id)}
               type="button"
@@ -215,7 +216,13 @@ function ProgressChip(props: { progress: ProgressModel; hold: MaidHold | null })
       data-tone={tone}
       role="status"
     >
-      <Presence tone={tone} />
+      {tone === 'unknown' ? (
+        <span className="atelier-progress__mark">
+          <Mark name="goal" />
+        </span>
+      ) : (
+        <Presence tone={tone} />
+      )}
       {props.progress.total > 0 ? (
         <span className="atelier-progress__fraction">
           {COPY.process(props.progress.completed, props.progress.total)}
@@ -234,11 +241,12 @@ function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hol
   const sentence = target ? COPY.goalLine(target, STATUS[props.progress.tone]) : COPY.noGoal
   const fraction = props.progress.total > 0
   const width = fraction ? Math.round((props.progress.completed / props.progress.total) * 100) : 0
+  const badgeFill = goalBadgeFill(tone)
 
   return (
     <div aria-hidden="true" className="atelier-goalstrip" data-tone={tone}>
       <div className="atelier-goalstrip__row">
-        <span className="atelier-goalstrip__badge">
+        <span className="atelier-goalstrip__badge" data-fill={badgeFill} style={{ background: badgeFill }}>
           <Mark name={tone === 'online' ? 'check' : 'goal'} />
         </span>
         <span className="atelier-goalstrip__goal">{sentence}</span>

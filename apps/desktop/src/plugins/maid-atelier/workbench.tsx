@@ -12,7 +12,7 @@ import { fullWorkspacePath } from './paths'
 import { emptyProgressCard, pluginProgressShelf } from './progress-store'
 import { Rail } from './rail'
 import { Reader } from './reader'
-import type { PresenceTone } from './theme'
+import { accentVars, type PresenceTone } from './theme'
 
 export function AtelierWorkbench(props: {
   gateway: AtelierGateway
@@ -90,7 +90,7 @@ export function AtelierWorkbench(props: {
   const failStep = () => props.notify(COPY.stepFailed, 'error')
 
   return (
-    <div className="atelier">
+    <div className="atelier" style={accentVars()}>
       <Rail
         card={card}
         faces={records.faces}

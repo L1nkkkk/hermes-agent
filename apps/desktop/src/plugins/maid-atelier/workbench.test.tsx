@@ -102,12 +102,35 @@ describe('atelier workbench', () => {
     expect(view?.querySelector('.atelier-you img')).toBeTruthy()
     expect(view?.querySelector('.atelier-you .atelier-pip')).toBeTruthy()
     expect(view?.querySelector('.atelier-goalstrip__badge .atelier-mark--goal')).toBeTruthy()
+    expect(view?.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
+    expect(view?.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe('#6fbf8a')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-pending')).toBe('#5b8def')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-blocked')).toBe('#d4546a')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-busy')).toBe('#f59e0b')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-online')).toBe('#6fbf8a')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-idle')).toBe('#7ec8c3')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-star')).toBe('#d7b56a')
     expect(view?.querySelector('.atelier-goalstrip__fraction .atelier-mark--process')).toBeTruthy()
     expect(view?.querySelector('.atelier-reader__tab .atelier-mark--file')).toBeTruthy()
     expect(view?.querySelector('.atelier-reader__toolbar .atelier-mark--copy')).toBeTruthy()
     expect((view?.querySelector('.atelier-reader__source') as HTMLButtonElement | null)?.disabled).toBe(true)
     expect(view?.querySelector('.atelier-model .atelier-mark--chip')).toBeTruthy()
     expect(view?.querySelector('.atelier-member input')).toBeTruthy()
+  })
+
+  it('keeps the local user green and paints gateway-down as blocked', async () => {
+    const view = render(
+      <AtelierWorkbench gateway={gatewayFor([])} gatewayOpen={false} notify={vi.fn()} storage={storage()} />
+    )
+
+    expect(view.container.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe(
+      '#6fbf8a'
+    )
+    expect(view.container.querySelector('.atelier-you__status')?.getAttribute('data-tone')).toBe('blocked')
+    expect(view.container.querySelector('.atelier-you__status .atelier-pip')?.getAttribute('data-fill')).toBe('#d4546a')
+    expect(view.container.querySelector('.atelier-you__status')?.textContent).toContain('Offline')
+    expect(view.container.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
+    expect(view.container.querySelector('.atelier-mark--plug')).toBeTruthy()
   })
 
   it('drafts a pull line without inviting the agent', async () => {
