@@ -59,6 +59,7 @@ export const COPY = {
   openChat: 'Open chat',
   settings: 'Settings',
   sessionFailed: 'Could not start a session.',
+  resumeFailed: 'Could not open this session.',
   send: 'Send',
   composerDm: (name: string) => `Message ${name}…`,
   composerGroup: 'Message the group…',

@@ -3,12 +3,15 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { sessionTitleFromMessage } from './actions'
+import { COPY } from './copy'
 import { type AtelierProfile, type AtelierRpc, createGateway } from './gateway'
 import { portraitSrc } from './portraits'
 import { goalBadgeFill, statusPaint } from './theme'
 import { AtelierWorkbench } from './workbench'
 
-function scripted(handler: (profile: AtelierProfile, method: string) => Promise<unknown>): AtelierRpc {
+function scripted(
+  handler: (profile: AtelierProfile, method: string, params: Record<string, unknown>) => Promise<unknown>
+): AtelierRpc {
   return handler as AtelierRpc
 }
 
@@ -181,6 +184,7 @@ describe('atelier workbench', () => {
     expect(view.container.querySelector('.atelier-you__status')?.textContent).not.toContain('🟢')
     expect(face?.getAttribute('data-tone')).toBe('blocked')
     expect(face?.getAttribute('style')).toContain('var(--status-blocked')
+    expect(face?.getAttribute('style')).toContain('#d4546a')
     expect(face?.getAttribute('style')).not.toContain('var(--status-online')
     expect(view.container.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe(
       goalBadgeFill('unknown')
@@ -537,5 +541,161 @@ describe('atelier workbench', () => {
     await waitFor(() => {
       expect(titles.filter(title => title === 'New session').length).toBe(1)
     })
+  })
+
+  it('disables Send until the composer has text', async () => {
+    const calls: string[] = []
+
+    render(<AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />)
+
+    const send = await screen.findByRole('button', { name: 'Send' })
+
+    expect(send).toBeDisabled()
+    fireEvent.submit(send.closest('form') as HTMLFormElement)
+
+    expect(calls.some(call => call.endsWith(':prompt.submit'))).toBe(false)
+
+    fireEvent.change(screen.getByLabelText(/Message Harper/), { target: { value: '  ' } })
+    expect(send).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText(/Message Harper/), { target: { value: 'Ship it' } })
+    expect(send).not.toBeDisabled()
+  })
+
+  it('does not label a session title as a goal', async () => {
+    const view = render(<AtelierWorkbench gateway={gatewayFor([])} gatewayOpen notify={vi.fn()} storage={storage()} />)
+
+    const session = await waitFor(() => {
+      const row = view.container.querySelector('.atelier-session')
+
+      if (!row) {
+        throw new Error('session missing')
+      }
+
+      return row
+    })
+
+    fireEvent.click(session)
+
+    await waitFor(() => {
+      expect(view.container.querySelector('.atelier-session[data-selected="true"]')).toBeTruthy()
+    })
+
+    const strip = view.container.querySelector('.atelier-goalstrip')
+
+    expect(strip?.textContent).toContain('No goal')
+    expect(strip?.textContent).not.toContain('Goal ch01_deploy.md')
+    expect(view.container.querySelector('.atelier-progress')?.getAttribute('data-source')).toBe('empty')
+  })
+
+  it('toasts and drops the previous transcript when resume fails', async () => {
+    installFiles('/work/alpha', '# Alpha\n\nalpha file')
+
+    const notify = vi.fn()
+    const view = render(
+      <AtelierWorkbench
+        gateway={createGateway(
+          scripted(async (profileRow, method, params) => {
+            if (method === 'profiles.list') {
+              return {
+                profiles: [
+                  { name: 'harper', display_name: 'Harper' },
+                  { name: 'notes', display_name: 'Notes' }
+                ]
+              }
+            }
+
+            if (method === 'session.list' && profileRow.id === 'harper') {
+              return {
+                sessions: [
+                  { id: 'alpha', title: 'Alpha', preview: '', started_at: 2, cwd: '/work/alpha' },
+                  { id: 'beta', title: 'Beta', preview: '', started_at: 1 }
+                ]
+              }
+            }
+
+            if (method === 'session.active_list') {
+              return { sessions: [{ id: 'alpha', status: 'working' }] }
+            }
+
+            if (method === 'session.resume') {
+              const sessionId = String(params?.session_id ?? '')
+
+              if (sessionId === 'beta') {
+                throw new Error('resume failed')
+              }
+
+              return {
+                session_id: 'rt-alpha',
+                stored_session_id: 'alpha',
+                messages: [{ role: 'assistant', name: 'Harper', text: 'alpha chat' }],
+                running: false,
+                info: { cwd: '/work/alpha', project: { primary_path: '/work/alpha' } }
+              }
+            }
+
+            if (method === 'session.control.read') {
+              return { control: { goal: { title: 'Finish alpha', status: 'active' } } }
+            }
+
+            return {}
+          })
+        )}
+        gatewayOpen
+        notify={notify}
+        storage={storage()}
+      />
+    )
+
+    const sessionRow = (title: string) =>
+      [...view.container.querySelectorAll('.atelier-session')].find(node => node.textContent?.includes(title))
+
+    const alpha = await waitFor(() => {
+      const row = sessionRow('Alpha')
+
+      if (!row) {
+        throw new Error('alpha missing')
+      }
+
+      return row
+    })
+
+    const beta = sessionRow('Beta')
+
+    if (!beta) {
+      throw new Error('beta missing')
+    }
+
+    expect(alpha.querySelector('.atelier-pip')?.getAttribute('data-fill')).toBe(statusPaint('busy'))
+    expect(beta.querySelector('.atelier-pip')?.getAttribute('data-fill')).toBe(statusPaint('idle'))
+    expect(beta.querySelector('.atelier-pip')?.getAttribute('data-fill')).not.toContain('#d4546a')
+
+    fireEvent.click(alpha)
+    fireEvent.click(await screen.findByRole('button', { name: 'chapter.md' }))
+
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-atelier-pane="main"]')?.textContent).toContain('alpha chat')
+      expect(view.container.querySelector('[data-atelier-pane="right"]')?.textContent).toContain('alpha file')
+      expect(view.container.querySelector('.atelier-goalstrip')?.textContent).toContain('Finish alpha')
+    })
+
+    fireEvent.click(beta)
+
+    await waitFor(() => {
+      const desk = view.container.querySelector('[data-atelier-pane="main"]')
+      const reader = view.container.querySelector('[data-atelier-pane="right"]')
+
+      expect(notify).toHaveBeenCalledWith(COPY.resumeFailed, 'error')
+      expect(sessionRow('Beta')?.getAttribute('data-selected')).toBe('true')
+      expect(desk?.textContent).not.toContain('alpha chat')
+      expect(desk?.textContent).not.toContain('Finish alpha')
+      expect(desk?.textContent).toContain('No goal')
+      expect(reader?.textContent).not.toContain('alpha file')
+      expect(reader?.textContent).toContain('No workspace')
+    })
+
+    fireEvent.click(view.container.querySelector('[data-atelier-profile="notes"] .atelier-row__main') as HTMLElement)
+
+    expect(view.container.querySelector('[data-atelier-pane="main"]')?.textContent).not.toContain('alpha chat')
   })
 })

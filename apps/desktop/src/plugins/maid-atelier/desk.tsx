@@ -58,6 +58,7 @@ export function Desk(props: {
   const target = findMaidMentionTarget(props.composer, props.caret)
   const choices = target ? maidMentionChoices(mentionAgents, target.query) : []
   const model = useValue(host.state.model).trim()
+  const canSend = props.composer.trim().length > 0
 
   return (
     <section className="atelier-pane atelier-desk" data-atelier-pane="main">
@@ -112,6 +113,11 @@ export function Desk(props: {
         className="atelier-composer"
         onSubmit={event => {
           event.preventDefault()
+
+          if (!canSend) {
+            return
+          }
+
           props.onSend()
         }}
       >
@@ -151,7 +157,7 @@ export function Desk(props: {
               <Mark name="chip" />
               <span>{model || COPY.noModel}</span>
             </button>
-            <button type="submit">
+            <button disabled={!canSend} type="submit">
               <Mark name="send" />
               <span>{COPY.send}</span>
             </button>

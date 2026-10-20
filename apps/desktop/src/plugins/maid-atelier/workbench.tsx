@@ -42,7 +42,12 @@ export function AtelierWorkbench(props: {
     running,
     workspacePath,
     sessionHolds
-  } = useAtelierFeeds({ gateway: props.gateway, gatewayOpen: props.gatewayOpen, listEpoch })
+  } = useAtelierFeeds({
+    gateway: props.gateway,
+    gatewayOpen: props.gatewayOpen,
+    listEpoch,
+    onResumeFailed: () => props.notify(COPY.resumeFailed, 'error')
+  })
 
   const memberIds = ownerId ? (records.members[ownerId] ?? []) : []
   const names = Object.fromEntries(profiles.map(profile => [profile.id, profile.name]))
@@ -58,13 +63,11 @@ export function AtelierWorkbench(props: {
 
   const roomId = sessionId || ownerId || 'atelier'
   const childKeys = childKeysFor(records.children, roomId)
-  const sessionTitle = sessions.find(session => session.id === sessionId)?.title ?? ''
   const listed = sessions.find(session => session.id === sessionId)
   const sessionRoot = sessionId ? workspacePath || listed?.gitRepoRoot || listed?.cwd || null : null
 
   const progress = resolveMaidProgress({
     goal,
-    title: sessionId ? sessionTitle : '',
     activeRun: running
   })
 

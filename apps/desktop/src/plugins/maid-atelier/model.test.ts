@@ -30,6 +30,15 @@ describe('maid progress', () => {
     })
   })
 
+  it('reads a control goal and does not invent one when control has none', () => {
+    expect(resolveMaidProgress({ goal: { objective: 'Ship the chapter', status: 'active' } })).toMatchObject({
+      source: 'goal',
+      target: 'Ship the chapter',
+      tone: 'working'
+    })
+    expect(resolveMaidProgress({ goal: null, activeRun: true })).toMatchObject({ source: 'empty', target: '' })
+  })
+
   it('counts only real steps', () => {
     const model = resolveMaidProgress({
       steps: [

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type {
   AtelierGateway,
@@ -16,6 +16,8 @@ export function useAtelierFeeds(input: {
   gatewayOpen: boolean
   /** Bumps after `session.create` so the rail re-reads `session.list`. */
   listEpoch: number
+  /** Fired once per selection when `session.resume` never paints that session. */
+  onResumeFailed: () => void
 }) {
   const [profiles, setProfiles] = useState<AtelierProfile[]>([])
   const [projects, setProjects] = useState<AtelierProject[]>([])
@@ -28,7 +30,12 @@ export function useAtelierFeeds(input: {
   const [running, setRunning] = useState(false)
   const [workspacePath, setWorkspacePath] = useState<string | null>(null)
   const [sessionHolds, setSessionHolds] = useState<Record<string, MaidHold>>({})
+  const resumeFailedRef = useRef(input.onResumeFailed)
   const owner = profiles.find(profile => profile.id === ownerId) ?? null
+
+  useEffect(() => {
+    resumeFailedRef.current = input.onResumeFailed
+  }, [input.onResumeFailed])
 
   useEffect(() => {
     let live = true
@@ -123,10 +130,7 @@ export function useAtelierFeeds(input: {
     let live = true
 
     if (!owner || !sessionId) {
-      setMessages([])
-      setGoal(null)
-      setRunning(false)
-      setWorkspacePath(null)
+      clearDesk(setMessages, setGoal, setRunning, setWorkspacePath)
 
       return () => {
         live = false
@@ -134,20 +138,35 @@ export function useAtelierFeeds(input: {
     }
 
     const selected = sessionId
-    setWorkspacePath(null)
+    // Drop the previous session before the new resume lands. A failed resume
+    // must not leave that transcript on the desk. A later poll of a session
+    // that already painted keeps the last good copy so the 4s refresh can heal.
+    clearDesk(setMessages, setGoal, setRunning, setWorkspacePath)
+
+    let painted = false
+    let announced = false
 
     const pull = () => {
       input.gateway
         .resume(owner, selected)
         .then(transcript => {
-          if (live) {
-            paintTranscript(transcript, selected, setMessages, setGoal, setRunning, setSessionHolds, setWorkspacePath)
+          if (!live) {
+            return
           }
+
+          painted = true
+          announced = false
+          paintTranscript(transcript, selected, setMessages, setGoal, setRunning, setSessionHolds, setWorkspacePath)
         })
         .catch(() => {
-          if (live) {
-            setGoal(null)
+          if (!live || painted || announced) {
+            return
           }
+
+          // Selection already cleared the previous transcript. Toast once so
+          // the empty desk is a failed open, not a silent blank.
+          announced = true
+          resumeFailedRef.current()
         })
     }
 
@@ -177,6 +196,18 @@ export function useAtelierFeeds(input: {
     workspacePath,
     sessionHolds
   }
+}
+
+function clearDesk(
+  setMessages: (messages: AtelierMessage[]) => void,
+  setGoal: (goal: GoalFacts | null) => void,
+  setRunning: (running: boolean) => void,
+  setWorkspacePath: (path: string | null) => void
+) {
+  setMessages([])
+  setGoal(null)
+  setRunning(false)
+  setWorkspacePath(null)
 }
 
 function paintTranscript(

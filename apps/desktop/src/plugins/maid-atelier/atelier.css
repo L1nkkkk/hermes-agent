@@ -982,6 +982,11 @@ button.atelier-model {
   cursor: pointer;
 }
 
+.atelier-composer__bar button[type='submit']:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .atelier-workflow-save {
   display: flex;
   gap: 4px;
