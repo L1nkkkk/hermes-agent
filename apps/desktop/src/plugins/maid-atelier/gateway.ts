@@ -18,6 +18,18 @@ export type AtelierSession = {
   /** null when the live list could not be read. Never treat that as idle. */
   busy: boolean | null
   profileId: string
+  /** Workspace fields from `session.list`. Null when the row did not report them. */
+  cwd: string | null
+  gitRepoRoot: string | null
+  gitBranch: string | null
+}
+
+/** One `projects.tree` node. Session ids are only those the tree itself listed. */
+export type AtelierProject = {
+  id: string
+  label: string
+  path: string | null
+  sessionIds: string[]
 }
 
 export type AtelierMessage = {
@@ -34,6 +46,8 @@ export type AtelierTranscript = {
   running: boolean
   /** Live session hold. A blocked goal is not copied here. */
   sessionHold: MaidHold | null
+  /** Resume `info.project.primary_path`, else `info.cwd`. Null when absent. */
+  workspacePath: string | null
 }
 
 export type AtelierGateway = {
@@ -43,6 +57,8 @@ export type AtelierGateway = {
   submit: (profile: AtelierProfile, sessionId: string, text: string) => Promise<void>
   createSession: (profile: AtelierProfile, title: string) => Promise<string>
   mainSession: (profile: AtelierProfile) => Promise<null | string>
+  /** `projects.tree` for this profile. Empty when the method is missing or returns nothing. */
+  listProjects: (profile: AtelierProfile) => Promise<AtelierProject[]>
 }
 
 export type AtelierRpc = <T>(profile: AtelierProfile, method: string, params: Record<string, unknown>) => Promise<T>
@@ -70,7 +86,8 @@ export function createGateway(request: Rpc): AtelierGateway {
     resume: (profile, sessionId) => resume(request, profile, sessionId),
     submit: (profile, sessionId, text) => submit(request, profile, sessionId, text),
     createSession: (profile, title) => createSession(request, profile, title),
-    mainSession: async profile => profile.canonicalSessionId || profile.lastSessionId || mostRecent(request, profile)
+    mainSession: async profile => profile.canonicalSessionId || profile.lastSessionId || mostRecent(request, profile),
+    listProjects: profile => listProjects(request, profile)
   }
 }
 
@@ -138,7 +155,18 @@ async function resume(request: Rpc, profile: AtelierProfile, sessionId: string):
     sessionHold: maidPresenceHold({
       status: text(snapshot.status),
       pendingApproval: snapshot.pending_approval != null && snapshot.pending_approval !== false
-    })
+    }),
+    workspacePath: workspacePath(snapshot)
+  }
+}
+
+async function listProjects(request: Rpc, profile: AtelierProfile): Promise<AtelierProject[]> {
+  try {
+    const result = await request<{ projects?: unknown }>(profile, 'projects.tree', { preview_limit: 20 })
+
+    return parseProjects(result?.projects)
+  } catch {
+    return []
   }
 }
 
@@ -253,9 +281,89 @@ function parseSession(row: unknown, profileId: string, live: Set<string> | null)
       preview: text(record.preview),
       updatedAt: typeof record.started_at === 'number' ? record.started_at : 0,
       busy: live === null ? null : live.has(id),
-      profileId
+      profileId,
+      cwd: text(record.cwd) || null,
+      gitRepoRoot: text(record.git_repo_root) || null,
+      gitBranch: text(record.git_branch) || null
     }
   ]
+}
+
+function parseProjects(value: unknown): AtelierProject[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const projects: AtelierProject[] = []
+
+  for (const row of value) {
+    if (!row || typeof row !== 'object') {
+      continue
+    }
+
+    const record = row as Record<string, unknown>
+    const id = text(record.id)
+    const label = text(record.label)
+
+    if (!id || !label || record.isNoProject === true) {
+      continue
+    }
+
+    projects.push({
+      id,
+      label,
+      path: text(record.path) || null,
+      sessionIds: projectSessionIds(record)
+    })
+  }
+
+  return projects
+}
+
+function projectSessionIds(record: Record<string, unknown>): string[] {
+  const ids = new Set<string>()
+
+  if (Array.isArray(record.sessionIds)) {
+    for (const id of record.sessionIds) {
+      const value = text(id)
+
+      if (value) {
+        ids.add(value)
+      }
+    }
+  }
+
+  if (Array.isArray(record.previewSessions)) {
+    for (const row of record.previewSessions) {
+      if (!row || typeof row !== 'object') {
+        continue
+      }
+
+      const id = text((row as Record<string, unknown>).id)
+
+      if (id) {
+        ids.add(id)
+      }
+    }
+  }
+
+  return [...ids]
+}
+
+function workspacePath(snapshot: Record<string, unknown>): string | null {
+  const info = snapshot.info
+
+  if (!info || typeof info !== 'object') {
+    return text(snapshot.cwd) || null
+  }
+
+  const record = info as Record<string, unknown>
+  const project = record.project
+
+  const primary =
+    project && typeof project === 'object' ? text((project as Record<string, unknown>).primary_path) : ''
+
+  return primary || text(record.cwd) || text(snapshot.cwd) || null
 }
 
 function parseMessages(value: unknown): AtelierMessage[] {

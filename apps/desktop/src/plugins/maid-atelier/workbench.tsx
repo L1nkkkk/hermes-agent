@@ -8,6 +8,7 @@ import { childStorageKey, type DeskRecords, readDesk, type Workflow, writeDesk }
 import { useAtelierFeeds } from './feeds'
 import type { AtelierGateway, AtelierProfile, AtelierSession } from './gateway'
 import { type MaidHold, maidManuscript, maidPresenceHold, maidRoom, resolveMaidProgress, roomAgents } from './model'
+import { fullWorkspacePath } from './paths'
 import { emptyProgressCard, pluginProgressShelf } from './progress-store'
 import { Rail } from './rail'
 import { Reader } from './reader'
@@ -28,6 +29,7 @@ export function AtelierWorkbench(props: {
 
   const {
     profiles,
+    projects,
     sessions,
     presence,
     owner,
@@ -42,6 +44,8 @@ export function AtelierWorkbench(props: {
     card,
     setCard,
     readerTitle,
+    readerCrumbs,
+    readerPath,
     readerBody,
     sessionHolds
   } = useAtelierFeeds({ gateway: props.gateway, gatewayOpen: props.gatewayOpen, shelf })
@@ -92,10 +96,33 @@ export function AtelierWorkbench(props: {
         faces={records.faces}
         gatewayOpen={props.gatewayOpen}
         goalHold={goalHold}
+        groups={records.groups}
         manuscripts={manuscripts}
         memberIds={memberIds}
+        onAssignGroup={(profileId, groupId) => {
+          persist({
+            ...records,
+            groups: records.groups.map(group => ({
+              ...group,
+              profileIds:
+                group.id === groupId
+                  ? uniqueIds([...group.profileIds, profileId])
+                  : group.profileIds.filter(id => id !== profileId)
+            }))
+          })
+        }}
         onOpenManuscript={setSessionId}
         onOpenWorkflow={workflow => openWorkflow(workflow, setOwnerId, setSessionId, persist, records)}
+        onSaveGroup={title => {
+          if (!ownerId) {
+            return
+          }
+
+          persist({
+            ...records,
+            groups: [...records.groups, { id: workflowId(), title, profileIds: [ownerId] }]
+          })
+        }}
         onSaveWorkflow={title => {
           if (!ownerId) {
             return
@@ -132,6 +159,7 @@ export function AtelierWorkbench(props: {
         ownerId={ownerId}
         presence={presenceView}
         profiles={profiles}
+        projects={projects}
         sessionHolds={sessionHolds}
         sessionId={sessionId}
         sessions={sessions}
@@ -211,7 +239,12 @@ export function AtelierWorkbench(props: {
         pullOpen={pullOpen}
         room={room}
       />
-      <Reader markdown={readerBody} title={readerTitle} />
+      <Reader
+        crumbs={readerCrumbs}
+        fullPath={fullWorkspacePath({ path: readerPath, title: readerTitle })}
+        markdown={readerBody}
+        title={readerTitle}
+      />
     </div>
   )
 }
@@ -261,6 +294,24 @@ function presenceWithHolds(
   const hold = tones.includes('blocked') ? 'blocked' : tones.includes('pending') ? 'pending' : null
 
   return hold ? { ...presence, [ownerId]: hold } : { ...presence }
+}
+
+function uniqueIds(ids: readonly string[]): string[] {
+  const seen = new Set<string>()
+  const next: string[] = []
+
+  for (const id of ids) {
+    const key = id.toLowerCase()
+
+    if (!id || seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    next.push(id)
+  }
+
+  return next
 }
 
 function workflowId(): string {
