@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { sessionTitleFromMessage } from './actions'
 import { type AtelierProfile, type AtelierRpc, createGateway } from './gateway'
 import { portraitSrc } from './portraits'
+import { goalBadgeFill, statusPaint } from './theme'
 import { AtelierWorkbench } from './workbench'
 
 function scripted(handler: (profile: AtelierProfile, method: string) => Promise<unknown>): AtelierRpc {
@@ -136,15 +137,18 @@ describe('atelier workbench', () => {
     expect(view?.querySelector('.atelier-you img')).toBeTruthy()
     expect(view?.querySelector('.atelier-you .atelier-pip')).toBeTruthy()
     expect(view?.querySelector('.atelier-goalstrip__badge .atelier-mark--goal')).toBeTruthy()
-    expect(view?.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
-    expect(view?.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe('#6fbf8a')
+    expect(view?.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe(goalBadgeFill('unknown'))
+    expect(view?.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe(
+      statusPaint('online')
+    )
     expect(view?.querySelector('.atelier-room__face[data-kind="user"]')?.getAttribute('data-tone')).toBe('online')
-    expect((view as HTMLElement).style.getPropertyValue('--atelier-pending')).toBe('#5b8def')
-    expect((view as HTMLElement).style.getPropertyValue('--atelier-blocked')).toBe('#d4546a')
-    expect((view as HTMLElement).style.getPropertyValue('--atelier-busy')).toBe('#f59e0b')
-    expect((view as HTMLElement).style.getPropertyValue('--atelier-online')).toBe('#6fbf8a')
-    expect((view as HTMLElement).style.getPropertyValue('--atelier-idle')).toBe('#7ec8c3')
-    expect((view as HTMLElement).style.getPropertyValue('--atelier-star')).toBe('#d7b56a')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-pending')).toBe(statusPaint('pending'))
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-blocked')).toBe(statusPaint('blocked'))
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-busy')).toBe(statusPaint('busy'))
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-online')).toBe(statusPaint('online'))
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-idle')).toBe(statusPaint('idle'))
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-star')).toBe('var(--status-star, #d7b56a)')
+    expect((view as HTMLElement).style.getPropertyValue('--atelier-pending')).not.toBe('#5b8def')
     expect(view?.querySelector('.atelier-goalstrip__fraction .atelier-mark--process')).toBeTruthy()
     expect(view?.querySelector('.atelier-reader__tab .atelier-mark--folder')).toBeTruthy()
     expect(view?.querySelector('.atelier-reader__toolbar .atelier-mark--copy')).toBeTruthy()
@@ -166,17 +170,21 @@ describe('atelier workbench', () => {
     const face = view.container.querySelector('.atelier-room__face[data-kind="user"]')
 
     expect(view.container.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe(
-      '#d4546a'
+      statusPaint('blocked')
     )
     expect(view.container.querySelector('.atelier-you__status')?.getAttribute('data-tone')).toBe('blocked')
-    expect(view.container.querySelector('.atelier-you__status .atelier-pip')?.getAttribute('data-fill')).toBe('#d4546a')
+    expect(view.container.querySelector('.atelier-you__status .atelier-pip')?.getAttribute('data-fill')).toBe(
+      statusPaint('blocked')
+    )
     expect(view.container.querySelector('.atelier-you__status')?.textContent).toContain('Offline')
     expect(view.container.querySelector('.atelier-you__status')?.textContent).toContain('⛔')
     expect(view.container.querySelector('.atelier-you__status')?.textContent).not.toContain('🟢')
     expect(face?.getAttribute('data-tone')).toBe('blocked')
-    expect(face?.getAttribute('style')).toContain('#d4546a')
-    expect(face?.getAttribute('style')).not.toContain('#6fbf8a')
-    expect(view.container.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
+    expect(face?.getAttribute('style')).toContain('var(--status-blocked')
+    expect(face?.getAttribute('style')).not.toContain('var(--status-online')
+    expect(view.container.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe(
+      goalBadgeFill('unknown')
+    )
     expect(view.container.querySelector('.atelier-mark--plug')).toBeTruthy()
   })
 
@@ -287,9 +295,11 @@ describe('atelier workbench', () => {
 
     const progress = await screen.findByRole('status', { name: 'Atelier progress' })
 
-    expect(within(progress).getByRole('img', { name: 'Blocked' }).getAttribute('data-fill')).toBe('#d4546a')
+    expect(within(progress).getByRole('img', { name: 'Blocked' }).getAttribute('data-fill')).toBe(
+      statusPaint('blocked')
+    )
     expect(view.container.querySelector('.atelier-session [data-tone="pending"]')?.getAttribute('data-fill')).toBe(
-      '#5b8def'
+      statusPaint('pending')
     )
   })
 

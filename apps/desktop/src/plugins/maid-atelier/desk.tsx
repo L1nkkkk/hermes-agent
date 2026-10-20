@@ -15,7 +15,7 @@ import {
 } from './model'
 import { portraitSrc } from './portraits'
 import { Presence } from './presence'
-import { goalBadgeFill, goalEmoji, PRESENCE_FILL, type PresenceTone } from './theme'
+import { goalBadgeFill, goalEmoji, type PresenceTone, statusPaint } from './theme'
 
 const TONE: Record<ProgressModel['tone'], PresenceTone> = {
   working: 'busy',
@@ -69,7 +69,7 @@ export function Desk(props: {
               data-kind={member.kind}
               data-tone={member.kind === 'user' ? props.youTone : undefined}
               key={member.id}
-              style={member.kind === 'user' ? { ['--face-ring' as string]: PRESENCE_FILL[props.youTone] } : undefined}
+              style={member.kind === 'user' ? { ['--face-ring' as string]: statusPaint(props.youTone) } : undefined}
             >
               <img alt="" src={portraitSrc(member.id, props.faces[member.id])} />
             </span>
