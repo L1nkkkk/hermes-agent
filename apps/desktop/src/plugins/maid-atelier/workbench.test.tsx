@@ -97,6 +97,17 @@ describe('atelier workbench', () => {
     expect(screen.getAllByText('No log').length).toBeGreaterThan(0)
     expect(screen.getAllByText('No checklist').length).toBeGreaterThan(0)
     expect(screen.queryByText(/sample/i)).toBeNull()
+    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark').length).toBe(8)
+    expect(view?.querySelectorAll('.atelier-section__toggle .atelier-mark--caret-down').length).toBe(4)
+    expect(view?.querySelector('.atelier-you img')).toBeTruthy()
+    expect(view?.querySelector('.atelier-you .atelier-pip')).toBeTruthy()
+    expect(view?.querySelector('.atelier-goalstrip__badge .atelier-mark--goal')).toBeTruthy()
+    expect(view?.querySelector('.atelier-goalstrip__fraction .atelier-mark--process')).toBeTruthy()
+    expect(view?.querySelector('.atelier-reader__tab .atelier-mark--file')).toBeTruthy()
+    expect(view?.querySelector('.atelier-reader__toolbar .atelier-mark--copy')).toBeTruthy()
+    expect((view?.querySelector('.atelier-reader__source') as HTMLButtonElement | null)?.disabled).toBe(true)
+    expect(view?.querySelector('.atelier-model .atelier-mark--chip')).toBeTruthy()
+    expect(view?.querySelector('.atelier-member input')).toBeTruthy()
   })
 
   it('drafts a pull line without inviting the agent', async () => {
@@ -311,6 +322,9 @@ describe('atelier workbench', () => {
     })
 
     expect(within(project as HTMLElement).getByText('ch01_deploy.md')).toBeTruthy()
+    expect(project.querySelector('.atelier-session .atelier-mark--file')).toBeTruthy()
+    expect(project.querySelector('.atelier-mark--folder')).toBeTruthy()
+    expect(project.querySelector('.atelier-twist .atelier-mark')).toBeTruthy()
     expect(project.querySelector('.atelier-session')).toBeTruthy()
     expect(project.textContent).not.toContain('Scratch')
 

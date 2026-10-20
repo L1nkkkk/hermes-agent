@@ -5,6 +5,7 @@ import type { MaidGroup, Workflow } from './desk-store'
 import type { AtelierProfile, AtelierProject, AtelierSession } from './gateway'
 import { type MaidHold, maidManuscript, type ProgressCard } from './model'
 import { groupSessions, type SessionBucket } from './paths'
+import { Mark, type MarkName } from './marks'
 import { portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
 import type { PresenceTone } from './theme'
@@ -80,7 +81,7 @@ export function Rail(props: {
   return (
     <aside className="atelier-pane atelier-rail" data-atelier-pane="left">
       <label className="atelier-search">
-        <SearchMark />
+        <Mark name="search" />
         <input
           aria-label={COPY.search}
           onChange={event => setQuery(event.target.value)}
@@ -90,7 +91,7 @@ export function Rail(props: {
         />
       </label>
       <div className="atelier-rail__scroll">
-        <Section title={COPY.groups}>
+        <Section mark="groups" title={COPY.groups}>
           {props.groups.map(group => (
             <GroupBranch
               branch={branch}
@@ -104,15 +105,17 @@ export function Rail(props: {
           ))}
           <GroupSave onSave={props.onSaveGroup} />
         </Section>
-        <Section title={COPY.maids}>
+        <Section mark="maid" title={COPY.maids}>
           {loose.length === 0 && props.profiles.length === 0 ? (
-            <Empty>{props.gatewayOpen ? COPY.noSessions : COPY.gatewayDown}</Empty>
+            <Empty mark={props.gatewayOpen ? 'maid' : 'plug'}>
+              {props.gatewayOpen ? COPY.noSessions : COPY.gatewayDown}
+            </Empty>
           ) : null}
           {loose.map(profile => (
             <ProfileBranch key={profile.id} profile={profile} {...branch} />
           ))}
         </Section>
-        <Section title={COPY.workQueue}>
+        <Section mark="queue" title={COPY.workQueue}>
           <WorkSteps
             card={props.card}
             goalHold={props.goalHold}
@@ -121,8 +124,8 @@ export function Rail(props: {
             onToggleStep={props.onToggleStep}
           />
         </Section>
-        <Section title={COPY.workflows}>
-          {props.workflows.length === 0 ? <Empty>{COPY.noWorkflows}</Empty> : null}
+        <Section mark="workflow" title={COPY.workflows}>
+          {props.workflows.length === 0 ? <Empty mark="workflow">{COPY.noWorkflows}</Empty> : null}
           {props.workflows.map(workflow => (
             <button
               className="atelier-session"
@@ -130,6 +133,7 @@ export function Rail(props: {
               onClick={() => props.onOpenWorkflow(workflow)}
               type="button"
             >
+              <Mark name="workflow" />
               <span className="atelier-row__name">{workflow.title}</span>
             </button>
           ))}
@@ -141,6 +145,7 @@ export function Rail(props: {
         <div>
           <div className="atelier-you__name">{props.youName}</div>
           <div className="atelier-you__status">
+            <Presence named={false} tone={props.gatewayOpen ? 'online' : 'unknown'} />
             <span>{props.gatewayOpen ? COPY.online : COPY.offline}</span>
           </div>
         </div>
@@ -190,6 +195,7 @@ function GroupBranch(props: {
     <div className="atelier-branch" data-atelier-group={props.group.id}>
       <div className="atelier-row">
         <Twist expanded={expanded} label={props.group.title} onToggle={() => props.onFold(props.group.id, expanded)} />
+        <Mark name="groups" />
         <span className="atelier-row__name">{props.group.title}</span>
         <span className="atelier-row__age">{members.length}</span>
       </div>
@@ -280,7 +286,7 @@ function SessionTree(props: {
 }) {
   return (
     <div aria-label={COPY.sessions} className="atelier-tree">
-      {props.sessions.length === 0 ? <Empty>{COPY.noSessions}</Empty> : null}
+      {props.sessions.length === 0 ? <Empty mark="file">{COPY.noSessions}</Empty> : null}
       {props.grouped.buckets.map(bucket => (
         <ProjectNode
           bucket={bucket}
@@ -317,6 +323,7 @@ function ProjectNode(props: {
     <div className="atelier-project" data-atelier-project={props.bucket.label}>
       <div className="atelier-row">
         <Twist expanded={props.expanded} label={props.bucket.label} onToggle={props.onFold} />
+        <Mark name="folder" />
         <span className="atelier-row__name">{props.bucket.label}</span>
         <span className="atelier-row__age">{props.bucket.sessions.length}</span>
       </div>
@@ -352,6 +359,7 @@ function SessionRow(props: {
       type="button"
     >
       <Presence tone={tone} />
+      <Mark name="file" />
       <span className="atelier-row__name">{props.session.title}</span>
       {LOUD.has(tone) ? <span className="atelier-row__meta">{TONE_LABEL[tone]}</span> : null}
       {age ? <span className="atelier-row__age">{age}</span> : null}
@@ -368,7 +376,9 @@ function Twist(props: { expanded: boolean; label: string; onToggle: () => void }
       data-open={props.expanded ? 'true' : 'false'}
       onClick={props.onToggle}
       type="button"
-    />
+    >
+      <Mark name={props.expanded ? 'caret-down' : 'caret-right'} />
+    </button>
   )
 }
 
@@ -493,7 +503,7 @@ function WorkSteps(props: {
   const steps = props.card?.steps.filter(step => step.step.trim()) ?? []
 
   if (steps.length === 0 && props.manuscripts.length === 0) {
-    return <Empty>{COPY.noChecklist}</Empty>
+    return <Empty mark="queue">{COPY.noChecklist}</Empty>
   }
 
   return (
@@ -509,7 +519,9 @@ function WorkSteps(props: {
             role="checkbox"
             type="button"
           >
-            <span aria-hidden="true" className="atelier-step__box" />
+            <span aria-hidden="true" className="atelier-step__box">
+              {step.status === 'completed' ? <Mark name="check" /> : null}
+            </span>
             <StepPresence goalHold={props.goalHold} status={step.status} />
             <span>{step.step}</span>
           </button>
@@ -523,6 +535,7 @@ function WorkSteps(props: {
             onClick={() => props.onOpenManuscript(item.id)}
             type="button"
           >
+            <Mark name="file" />
             <span>{item.label}</span>
             {maidManuscript(item.label) ? <span className="atelier-refine">{COPY.refine}</span> : null}
           </button>
@@ -562,26 +575,35 @@ function Face(props: { id: string; name: string; faces: Readonly<Record<string, 
   )
 }
 
-function SearchMark() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 16 16">
-      <circle cx="7" cy="7" fill="none" r="4.25" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M10.4 10.4 L13.5 13.5" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  )
-}
+function Section(props: { title: string; mark: MarkName; children: ReactNode }) {
+  const [open, setOpen] = useState(true)
 
-function Section(props: { title: string; children: ReactNode }) {
   return (
-    <section className="atelier-section">
-      <h2>{props.title}</h2>
-      {props.children}
+    <section className="atelier-section" data-open={open ? 'true' : 'false'}>
+      <h2>
+        <button
+          aria-expanded={open}
+          className="atelier-section__toggle"
+          onClick={() => setOpen(current => !current)}
+          type="button"
+        >
+          <Mark name={open ? 'caret-down' : 'caret-right'} />
+          <Mark name={props.mark} />
+          <span>{props.title}</span>
+        </button>
+      </h2>
+      {open ? props.children : null}
     </section>
   )
 }
 
-function Empty(props: { children: string }) {
-  return <p className="atelier-empty">{props.children}</p>
+function Empty(props: { mark: MarkName; children: string }) {
+  return (
+    <p className="atelier-empty">
+      <Mark name={props.mark} />
+      <span>{props.children}</span>
+    </p>
+  )
 }
 
 function sessionTone(busy: boolean | null): PresenceTone {

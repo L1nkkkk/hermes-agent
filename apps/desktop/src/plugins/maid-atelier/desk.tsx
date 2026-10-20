@@ -1,3 +1,7 @@
+import { useStore } from '@nanostores/react'
+
+import { $currentModel } from '@/store/session'
+
 import { COPY } from './copy'
 import type { AtelierMessage } from './gateway'
 import {
@@ -12,6 +16,7 @@ import {
   type ProgressModel,
   type Room
 } from './model'
+import { Mark } from './marks'
 import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
 import type { PresenceTone } from './theme'
@@ -65,6 +70,7 @@ export function Desk(props: {
   const target = findMaidMentionTarget(props.composer, props.caret)
   const choices = target ? maidMentionChoices(mentionAgents, target.query) : []
   const candidates = draftCandidates(props.profiles, props.memberIds, props.ownerId)
+  const model = useStore($currentModel).trim()
 
   return (
     <section className="atelier-pane atelier-desk" data-atelier-pane="main">
@@ -176,9 +182,19 @@ export function Desk(props: {
             title={candidates.length === 0 ? COPY.draftEmpty : COPY.draftHint}
             type="button"
           >
-            {COPY.draftLine}
+            <Mark name="draft" />
+            <span>{COPY.draftLine}</span>
           </button>
-          <button type="submit">{COPY.send}</button>
+          <div className="atelier-composer__end">
+            <span className="atelier-model">
+              <Mark name="chip" />
+              <span>{model || COPY.noModel}</span>
+            </span>
+            <button type="submit">
+              <Mark name="send" />
+              <span>{COPY.send}</span>
+            </button>
+          </div>
         </div>
         <StepAdd onAdd={props.onAddStep} />
       </form>
@@ -222,13 +238,14 @@ function GoalStrip(props: { progress: ProgressModel; goal: GoalFacts | null; hol
   return (
     <div aria-hidden="true" className="atelier-goalstrip" data-tone={tone}>
       <div className="atelier-goalstrip__row">
-        <Presence named={false} tone={tone} />
+        <span className="atelier-goalstrip__badge">
+          <Mark name={tone === 'online' ? 'check' : 'goal'} />
+        </span>
         <span className="atelier-goalstrip__goal">{sentence}</span>
-        {fraction ? (
-          <span className="atelier-goalstrip__fraction">
-            {COPY.process(props.progress.completed, props.progress.total)}
-          </span>
-        ) : null}
+        <span className="atelier-goalstrip__fraction">
+          <Mark name="process" />
+          {fraction ? <span>{COPY.process(props.progress.completed, props.progress.total)}</span> : null}
+        </span>
       </div>
       {fraction ? (
         <div className="atelier-goalstrip__track">
@@ -255,8 +272,14 @@ function TaskLog(props: {
 
     return (
       <section aria-label={COPY.workQueue} className="atelier-log">
-        <p>{COPY.noLog}</p>
-        <p data-empty="checklist">{COPY.noChecklist}</p>
+        <p className="atelier-empty">
+          <Mark name="file" />
+          <span>{COPY.noLog}</span>
+        </p>
+        <p className="atelier-empty" data-empty="checklist">
+          <Mark name="queue" />
+          <span>{COPY.noChecklist}</span>
+        </p>
       </section>
     )
   }
@@ -274,6 +297,9 @@ function TaskLog(props: {
                 role="checkbox"
                 type="button"
               >
+                <span aria-hidden="true" className="atelier-step__box">
+                  {step.status === 'completed' ? <Mark name="check" /> : null}
+                </span>
                 <StepPresence goalHold={props.goalHold} status={step.status} />
                 <span>{step.step}</span>
               </button>
