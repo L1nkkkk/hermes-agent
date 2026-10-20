@@ -322,19 +322,6 @@ export function draftCandidates(
   return profiles.filter(profile => profile.id && !present.has(profile.id.toLowerCase()))
 }
 
-export function maidManuscript(label: string): boolean {
-  return /(?:^|[\\/])ch\d{2,}[_-]/i.test(label) || /\.(?:md|markdown)$/i.test(label)
-}
-
-export function transcriptMarkdown(title: string, messages: readonly { name: string; text: string }[]): string {
-  const body = messages
-    .filter(message => message.text.trim())
-    .map(message => `## ${message.name}\n\n${message.text.trim()}`)
-    .join('\n\n')
-
-  return body ? `# ${title}\n\n${body}` : `# ${title}\n`
-}
-
 function progressFromSteps(steps: ProgressStep[], activeRun: boolean): ProgressModel {
   const completed = steps.filter(step => step.status === 'completed').length
 

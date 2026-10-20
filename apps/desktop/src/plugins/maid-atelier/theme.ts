@@ -1,13 +1,11 @@
 import type { CSSProperties } from 'react'
 
 /**
- * Presence fills for the Maid Atelier workbench.
- *
- * pending and blocked are the locked OpenClaw values. busy is OpenClaw's
- * `--warn` amber. online is the maid theme `--ok` sage. idle is a cooler mint
- * so the three stay apart: OpenClaw's own pip CSS still points busy at `--info`
- * and idle at a muted mix, which would fail the checklist's three-way split.
- * Unknown is an empty ring, never a green.
+ * Dark-mode fallbacks for presence fills. The painted color is `statusPaint()`,
+ * which reads `--status-*` from styles.css (`:root` light, `.dark` dark) so a
+ * light shell does not keep the OpenClaw night values. These hexes stay the
+ * dark checklist: pending and blocked apart, busy / idle / online three ways,
+ * unknown an empty ring.
  */
 
 export const PRESENCE_FILL = {
@@ -46,22 +44,34 @@ export function goalEmoji(tone: PresenceTone): string {
   return TONE_EMOJI[tone]
 }
 
-/** Goal hairline and the reader's first chapter. OpenClaw binds both to `--info`. */
-export const GOAL_ACCENT = '#60a5fa'
+const STATUS_VAR = {
+  pending: '--status-pending',
+  blocked: '--status-blocked',
+  busy: '--status-busy',
+  idle: '--status-idle',
+  online: '--status-online',
+  attention: '--status-attention'
+} as const
 
-/** Rail star / loud-row gold already used by session meta. */
-export const STAR_ACCENT = '#d7b56a'
+/** Paint a presence tone from the shell status token, with the dark hex as fallback. */
+export function statusPaint(tone: PresenceTone): string {
+  if (tone === 'unknown') {
+    return PRESENCE_FILL.unknown
+  }
 
-/** CSS variables the workbench root sets so chrome marks use these tokens. */
+  return `var(${STATUS_VAR[tone]}, ${PRESENCE_FILL[tone]})`
+}
+
+/** CSS variables the workbench root sets so chrome marks follow `--status-*`. */
 export function accentVars(): CSSProperties {
   return {
-    '--atelier-pending': PRESENCE_FILL.pending,
-    '--atelier-blocked': PRESENCE_FILL.blocked,
-    '--atelier-busy': PRESENCE_FILL.busy,
-    '--atelier-online': PRESENCE_FILL.online,
-    '--atelier-idle': PRESENCE_FILL.idle,
-    '--atelier-goal': GOAL_ACCENT,
-    '--atelier-star': STAR_ACCENT
+    '--atelier-pending': statusPaint('pending'),
+    '--atelier-blocked': statusPaint('blocked'),
+    '--atelier-busy': statusPaint('busy'),
+    '--atelier-online': statusPaint('online'),
+    '--atelier-idle': statusPaint('idle'),
+    '--atelier-goal': 'var(--status-goal, #60a5fa)',
+    '--atelier-star': 'var(--status-star, #d7b56a)'
   }
 }
 
@@ -71,22 +81,12 @@ export function accentVars(): CSSProperties {
  */
 export function goalBadgeFill(tone: PresenceTone): string {
   if (tone === 'unknown') {
-    return GOAL_ACCENT
+    return 'var(--status-goal, #60a5fa)'
   }
 
   if (tone === 'attention') {
-    return PRESENCE_FILL.blocked
+    return statusPaint('blocked')
   }
 
-  return PRESENCE_FILL[tone]
+  return statusPaint(tone)
 }
-
-export const SHELL = {
-  bg: '#1c1d21',
-  elevated: '#26282e',
-  text: '#c6c8ce',
-  strong: '#f3f4f6',
-  muted: '#9aa1ab',
-  border: '#32353d',
-  accent: '#7aa2d0'
-} as const

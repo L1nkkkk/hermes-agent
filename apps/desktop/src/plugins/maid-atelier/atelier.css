@@ -1,56 +1,54 @@
 .atelier {
-  --atelier-bg: #1e1f23;
-  --atelier-elevated: #26282e;
-  --atelier-hover: #2c3038;
-  --atelier-text: #d7dbe3;
-  --atelier-strong: #f5f6f8;
-  --atelier-muted: #b7bec8;
-  --atelier-border: #3a3e48;
-  --atelier-accent: #7aa2d0;
-  --atelier-goal: #60a5fa;
-  --atelier-pending: #5b8def;
-  --atelier-blocked: #d4546a;
-  --atelier-busy: #f59e0b;
-  --atelier-online: #6fbf8a;
-  --atelier-idle: #7ec8c3;
-  --atelier-star: #d7b56a;
-  --atelier-select: #2a3648;
-  --atelier-ring: #1a1b1f;
-  --atelier-rail: #18191d;
-  position: fixed;
+  /* Host surfaces, not a private palette. styles.css owns --dt-* / --ui-* /
+     --status-* (light on :root, dark on .dark). themes/context.tsx toggles
+     .dark and the native titlebar. Fallbacks only cover a preview that has
+     not loaded the shell stylesheet. */
+  --atelier-bg: var(--ui-chat-surface-background, var(--dt-background, #1e1f23));
+  --atelier-elevated: var(--dt-card, #26282e);
+  --atelier-hover: var(--ui-row-hover-background, var(--dt-muted, #2c3038));
+  --atelier-text: var(--ui-text-secondary, var(--dt-foreground, #d7dbe3));
+  --atelier-strong: var(--dt-foreground, #f5f6f8);
+  --atelier-muted: var(--dt-muted-foreground, #b7bec8);
+  --atelier-border: var(--ui-stroke-secondary, var(--dt-border, #3a3e48));
+  --atelier-accent: var(--dt-midground, var(--dt-primary, #7aa2d0));
+  --atelier-goal: var(--status-goal, #60a5fa);
+  --atelier-pending: var(--status-pending, #5b8def);
+  --atelier-blocked: var(--status-blocked, #d4546a);
+  --atelier-busy: var(--status-busy, #f59e0b);
+  --atelier-online: var(--status-online, #6fbf8a);
+  --atelier-idle: var(--status-idle, #7ec8c3);
+  --atelier-star: var(--status-star, #d7b56a);
+  --atelier-attention: var(--status-attention, #f87171);
+  --atelier-select: var(--ui-row-active-background, color-mix(in srgb, var(--atelier-accent) 16%, var(--atelier-bg)));
+  --atelier-ring: var(--atelier-bg);
+  --atelier-rail: var(--ui-sidebar-surface-background, var(--dt-sidebar-bg, var(--atelier-bg)));
+  /* Fill the workspace pane. The route parent is `display: contents`, so this
+     absolute box's containing block is that pane — not the viewport. `fixed`
+     escaped the pane, stacked above Settings (z-50), and ate host clicks. */
+  position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: auto;
   display: grid;
-  grid-template-columns: 252px minmax(0, 1fr) minmax(420px, 1.02fr);
-  width: 100%;
-  height: 100%;
+  grid-template-columns: minmax(168px, 252px) minmax(0, 1fr) minmax(0, 1.05fr);
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
   background: var(--atelier-bg);
   color: var(--atelier-text);
-  color-scheme: dark;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    'PingFang SC',
-    'Noto Sans SC',
-    sans-serif;
-  font-size: 13px;
+  color-scheme: inherit;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  font-family: var(--dt-font-sans, system-ui, sans-serif);
+  font-size: var(--conversation-text-font-size, 13px);
   line-height: 1.45;
 }
 
-/* The host shell stays in the layout under this route. Drop its light sidebar,
-   statusbar, and titlebar clusters, and paint any remaining frame charcoal. */
-html[data-atelier-window='true'] body,
-html[data-atelier-window='true'] [data-contrib-shell] {
-  background: #18191d !important;
-  color-scheme: dark;
-}
-
-html[data-atelier-window='true'] [data-sidebar='sidebar'],
-html[data-atelier-window='true'] [data-slot='statusbar'],
-html[data-atelier-window='true'] [data-titlebar-cluster] {
-  display: none !important;
+.atelier button,
+.atelier input,
+.atelier textarea,
+.atelier label,
+.atelier a {
+  -webkit-app-region: no-drag;
 }
 
 .atelier-pane {
@@ -88,8 +86,8 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   margin: 8px 8px 2px;
   padding: 0 8px;
   border: 1px solid var(--atelier-border);
-  border-radius: 7px;
-  background: #1a1c22;
+  border-radius: var(--radius-md, 7px);
+  background: var(--atelier-rail);
   color: var(--atelier-muted);
 }
 
@@ -362,7 +360,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 .atelier-tree {
   margin: 0 0 2px 18px;
   padding-left: 8px;
-  border-left: 1px solid #2c3038;
+  border-left: 1px solid var(--atelier-border);
 }
 
 .atelier-gutter,
@@ -417,7 +415,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   width: 14px;
   height: 14px;
   margin: 0;
-  accent-color: #7aa2d0;
+  accent-color: var(--atelier-accent);
 }
 
 .atelier-avatar {
@@ -468,7 +466,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 }
 
 .atelier-pip[data-tone='unknown'] {
-  border-color: #8b93a7;
+  border-color: var(--atelier-muted);
 }
 
 .atelier-pip[data-tone='online'],
@@ -549,7 +547,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   min-height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  background: #22252c;
+  background: var(--atelier-elevated);
   color: var(--atelier-text);
   font-size: 11px;
 }
@@ -587,7 +585,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   padding: 0;
   border: 0;
   background: transparent;
-  cursor: pointer;
+  cursor: default;
 }
 
 .atelier-draft {
@@ -695,7 +693,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   height: 14px;
   border: 1px solid var(--atelier-muted);
   border-radius: 3px;
-  color: #102117;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-step__box .atelier-mark {
@@ -706,8 +704,8 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 
 .atelier-step[data-done='true'] .atelier-step__box,
 .atelier-log button[aria-checked='true'] .atelier-step__box {
-  background: #6fbf8a;
-  border-color: #6fbf8a;
+  background: var(--atelier-online);
+  border-color: var(--atelier-online);
 }
 
 .atelier-log button[aria-checked='true'] span:last-child {
@@ -727,7 +725,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   padding: 0;
   border-radius: 0;
   background: transparent;
-  color: #e6e8ed;
+  color: var(--atelier-text);
   font-size: 13.5px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -741,8 +739,8 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 
 .atelier-msg[data-role='user'] p {
   padding: 10px 14px;
-  border-radius: 12px;
-  background: #2a303a;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--dt-user-bubble, var(--atelier-elevated));
   line-height: 1.55;
 }
 
@@ -767,7 +765,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   height: 18px;
   border-radius: 50%;
   background: var(--atelier-goal);
-  color: #071226;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-goalstrip__badge .atelier-mark {
@@ -778,33 +776,33 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 
 .atelier-goalstrip[data-tone='online'] .atelier-goalstrip__badge {
   background: var(--atelier-online);
-  color: #102117;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-goalstrip[data-tone='busy'] .atelier-goalstrip__badge {
   background: var(--atelier-busy);
-  color: #1c1406;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-goalstrip[data-tone='blocked'] .atelier-goalstrip__badge,
 .atelier-goalstrip[data-tone='attention'] .atelier-goalstrip__badge {
   background: var(--atelier-blocked);
-  color: #fff5f6;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-goalstrip[data-tone='pending'] .atelier-goalstrip__badge {
   background: var(--atelier-pending);
-  color: #071226;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-goalstrip[data-tone='unknown'] .atelier-goalstrip__badge {
   background: var(--atelier-goal);
-  color: #071226;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-goalstrip[data-tone='idle'] .atelier-goalstrip__badge {
   background: var(--atelier-idle);
-  color: #06211f;
+  color: var(--status-ink, #071226);
 }
 
 .atelier-goalstrip__row {
@@ -843,34 +841,34 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 }
 
 .atelier-goalstrip[data-tone='online'] .atelier-goalstrip__fill {
-  background: #6fbf8a;
+  background: var(--atelier-online);
 }
 
 .atelier-goalstrip[data-tone='busy'] .atelier-goalstrip__fill {
-  background: #f59e0b;
+  background: var(--atelier-busy);
 }
 
 .atelier-goalstrip[data-tone='idle'] .atelier-goalstrip__fill {
-  background: #7ec8c3;
+  background: var(--atelier-idle);
 }
 
 .atelier-goalstrip[data-tone='attention'] .atelier-goalstrip__fill {
-  background: #f87171;
+  background: var(--atelier-attention);
 }
 
 .atelier-goalstrip[data-tone='blocked'] .atelier-goalstrip__fill {
-  background: #d4546a;
+  background: var(--atelier-blocked);
 }
 
 .atelier-goalstrip[data-tone='pending'] .atelier-goalstrip__fill {
-  background: #5b8def;
+  background: var(--atelier-pending);
 }
 
 .atelier-composer {
   margin: 6px 12px 12px;
-  border: 1px solid #34363d;
-  border-radius: 14px;
-  background: #191b20;
+  border: 1px solid var(--atelier-border);
+  border-radius: var(--radius-xl, 14px);
+  background: var(--atelier-elevated);
 }
 
 .atelier-composer textarea,
@@ -910,13 +908,62 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   gap: 6px;
 }
 
-.atelier-model {
+.atelier-composer__end {
+  margin-left: auto;
+}
+
+button.atelier-model {
   height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--atelier-star) 18%, #191b20);
+  background: color-mix(in srgb, var(--atelier-star) 18%, var(--atelier-bg));
   color: var(--atelier-star);
   font-size: 11px;
+  cursor: pointer;
+}
+
+.atelier-host {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.atelier-host button,
+.atelier-new-session {
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--atelier-muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.atelier-host button {
+  padding: 0 8px;
+}
+
+.atelier-host button:hover,
+.atelier-new-session:hover {
+  background: var(--atelier-hover);
+  color: var(--atelier-strong);
+}
+
+.atelier-new-session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 12px);
+  margin: 2px 6px 4px;
+  padding: 0 8px;
+  text-align: start;
+}
+
+.atelier-new-session:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .atelier-model .atelier-mark {
@@ -930,7 +977,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   padding: 0 12px;
   border-radius: 999px;
   background: var(--atelier-goal);
-  color: #071226;
+  color: var(--status-ink, #071226);
   font-weight: 650;
   cursor: pointer;
 }
@@ -1006,12 +1053,34 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 }
 
 .atelier-reader__path {
+  display: flex;
   flex: 1;
+  align-items: center;
+  gap: 2px;
   min-width: 0;
   min-height: 30px;
   padding: 0 14px;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.atelier-reader__crumb button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.atelier-reader__crumb button:hover {
+  color: var(--atelier-strong);
+}
+
+.atelier-reader__badge {
+  margin: 0 8px 6px auto;
+  color: var(--atelier-muted);
+  font-size: 11px;
 }
 
 .atelier-reader__copy,
@@ -1059,16 +1128,89 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   opacity: 0.55;
 }
 
+.atelier-reader__stage {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(132px, 34%) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.atelier-reader__files {
+  min-height: 0;
+  overflow: auto;
+  background: var(--atelier-rail);
+  border-inline-end: 1px solid var(--atelier-border);
+}
+
+.atelier-reader__files input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 1px solid var(--atelier-border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.atelier-reader__file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.atelier-reader__file[data-selected='true'],
+.atelier-reader__file:hover {
+  background: var(--atelier-select);
+}
+
 .atelier-reader__scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 18px 36px 56px;
+  padding: 18px 28px 56px;
+}
+
+.atelier-reader__editor,
+.atelier-reader__source-text {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  color: var(--atelier-text);
+  font-family: var(--dt-font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.atelier-reader__editor {
+  height: 100%;
+  min-height: 240px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  resize: none;
+}
+
+.atelier-reader__note {
+  margin: 0 0 12px;
+  color: var(--atelier-busy);
+  font-size: 12px;
 }
 
 .atelier-reader__h1 {
   margin: 8px 0 22px;
-  color: #eef2f7;
+  color: var(--atelier-strong);
   font-size: 30px;
   font-weight: 620;
   letter-spacing: -0.03em;
@@ -1085,7 +1227,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 .atelier-reader__body li,
 .atelier-reader__body pre {
   margin: 0 0 0.95em;
-  color: #e3e5ea;
+  color: var(--atelier-text);
   font-size: 15px;
   line-height: 1.75;
   white-space: pre-wrap;

@@ -244,6 +244,18 @@
     --ui-orange: #db704b;
     --ui-yellow: #c08532;
     --ui-green: #1f8a65;
+    /* Status ink shared by Atelier, Settings, and chat. Light values sit on
+       the light shell; :root.dark (themes/context.tsx toggles .dark) replaces
+       them. Do not hardcode a second palette in a plugin. */
+    --status-pending: #2f62c4;
+    --status-blocked: #c23d54;
+    --status-busy: #b87408;
+    --status-online: #1f8a65;
+    --status-idle: #3d8a86;
+    --status-attention: #cf2d56;
+    --status-goal: var(--theme-primary);
+    --status-star: #8a6a2e;
+    --status-ink: #f7f8fa;
     --ui-cyan: #4c7f8c;
     --ui-blue: #0053fd;
     --ui-purple: #9e94d5;
@@ -2036,6 +2048,15 @@ body.guest-pointer-lock :is(webview, iframe) {
 .dark {
   --dock-glow-scale: 1;
   --chat-unfocused-opacity: 0.72;
+  --status-pending: #5b8def;
+  --status-blocked: #d4546a;
+  --status-busy: #f59e0b;
+  --status-online: #6fbf8a;
+  --status-idle: #7ec8c3;
+  --status-attention: #f87171;
+  --status-goal: #60a5fa;
+  --status-star: #d7b56a;
+  --status-ink: #071226;
 }
 
 /* The whole surface recedes as ONE layer — thread, timeline rail, composer,

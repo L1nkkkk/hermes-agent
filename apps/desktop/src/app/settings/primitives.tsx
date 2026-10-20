@@ -126,8 +126,8 @@ export function NavLink({
       className={cn(
         'flex min-h-7 w-full justify-start gap-2 rounded-md px-2 text-left text-[length:var(--conversation-text-font-size)] transition',
         active
-          ? 'bg-(--ui-bg-tertiary) text-foreground'
-          : 'text-(--ui-text-secondary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+          ? 'bg-(--ui-row-active-background) text-(--dt-foreground)'
+          : 'text-(--ui-text-secondary) hover:bg-(--ui-row-hover-background) hover:text-(--dt-foreground)'
       )}
       onClick={onClick}
       size="sm"
@@ -179,12 +179,12 @@ export function ListRow({
     <div className={cn('@container', className)} data-tour={dataTour} id={id}>
       <div className={cn('grid gap-3 py-3', !wide && [LIST_ROW_COLUMNS, '@2xl:items-center'])}>
         <div className="min-w-0">
-          <div className="flex items-center justify-between gap-3 text-[length:var(--conversation-text-font-size)] font-medium text-foreground">
+          <div className="flex items-center justify-between gap-3 text-[length:var(--conversation-text-font-size)] font-medium text-(--dt-foreground)">
             <span className="min-w-0">{title}</span>
             {wide && action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
           </div>
           {description && (
-            <div className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+            <div className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--dt-muted-foreground)">
               {description}
             </div>
           )}
