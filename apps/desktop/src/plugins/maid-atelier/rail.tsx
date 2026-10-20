@@ -141,7 +141,7 @@ export function Rail(props: {
         </Section>
       </div>
       <header className="atelier-you">
-        <Face faces={props.faces} id="user" name={props.youName} tone="online" />
+        <Face faces={props.faces} id="user" name={props.youName} tone={props.gatewayOpen ? 'online' : 'blocked'} />
         <div>
           <div className="atelier-you__name">{props.youName}</div>
           <div className="atelier-you__status" data-tone={props.gatewayOpen ? 'online' : 'blocked'}>

@@ -19,7 +19,7 @@ import {
 import { Mark } from './marks'
 import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
-import { goalBadgeFill, type PresenceTone } from './theme'
+import { goalBadgeFill, PRESENCE_FILL, type PresenceTone } from './theme'
 
 const TONE: Record<ProgressModel['tone'], PresenceTone> = {
   working: 'busy',
@@ -59,6 +59,7 @@ export function Desk(props: {
   onEditFace: (id: string | null) => void
   onPickFace: (id: string, index: number) => void
   caret: number
+  youTone: PresenceTone
 }) {
   const agents =
     props.room.kind === 'group' ? props.room.members.flatMap(member => (member.kind === 'agent' ? [member] : [])) : []
@@ -81,8 +82,10 @@ export function Desk(props: {
               aria-label={COPY.changeFace(member.name)}
               className="atelier-room__face"
               data-kind={member.kind}
+              data-tone={member.kind === 'user' ? props.youTone : undefined}
               key={member.id}
               onClick={() => props.onEditFace(member.id)}
+              style={member.kind === 'user' ? { ['--face-ring' as string]: PRESENCE_FILL[props.youTone] } : undefined}
               type="button"
             >
               <img alt="" src={portraitSrc(member.id, props.faces[member.id])} />

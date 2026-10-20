@@ -475,8 +475,8 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   color: var(--atelier-blocked);
 }
 
-.atelier-room__face[data-kind='user'] img {
-  box-shadow: 0 0 0 2px var(--atelier-online);
+.atelier-room__face[data-tone] img {
+  box-shadow: 0 0 0 2px var(--face-ring);
 }
 
 .atelier-desk {

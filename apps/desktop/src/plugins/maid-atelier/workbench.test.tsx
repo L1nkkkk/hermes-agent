@@ -104,6 +104,7 @@ describe('atelier workbench', () => {
     expect(view?.querySelector('.atelier-goalstrip__badge .atelier-mark--goal')).toBeTruthy()
     expect(view?.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
     expect(view?.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe('#6fbf8a')
+    expect(view?.querySelector('.atelier-room__face[data-kind="user"]')?.getAttribute('data-tone')).toBe('online')
     expect((view as HTMLElement).style.getPropertyValue('--atelier-pending')).toBe('#5b8def')
     expect((view as HTMLElement).style.getPropertyValue('--atelier-blocked')).toBe('#d4546a')
     expect((view as HTMLElement).style.getPropertyValue('--atelier-busy')).toBe('#f59e0b')
@@ -118,17 +119,21 @@ describe('atelier workbench', () => {
     expect(view?.querySelector('.atelier-member input')).toBeTruthy()
   })
 
-  it('keeps the local user green and paints gateway-down as blocked', async () => {
+  it('paints offline face rings blocked, not online', async () => {
     const view = render(
       <AtelierWorkbench gateway={gatewayFor([])} gatewayOpen={false} notify={vi.fn()} storage={storage()} />
     )
+    const face = view.container.querySelector('.atelier-room__face[data-kind="user"]')
 
     expect(view.container.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe(
-      '#6fbf8a'
+      '#d4546a'
     )
     expect(view.container.querySelector('.atelier-you__status')?.getAttribute('data-tone')).toBe('blocked')
     expect(view.container.querySelector('.atelier-you__status .atelier-pip')?.getAttribute('data-fill')).toBe('#d4546a')
     expect(view.container.querySelector('.atelier-you__status')?.textContent).toContain('Offline')
+    expect(face?.getAttribute('data-tone')).toBe('blocked')
+    expect(face?.getAttribute('style')).toContain('#d4546a')
+    expect(face?.getAttribute('style')).not.toContain('#6fbf8a')
     expect(view.container.querySelector('.atelier-goalstrip__badge')?.getAttribute('data-fill')).toBe('#60a5fa')
     expect(view.container.querySelector('.atelier-mark--plug')).toBeTruthy()
   })

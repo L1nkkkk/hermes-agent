@@ -238,6 +238,7 @@ export function AtelierWorkbench(props: {
         progress={progress}
         pullOpen={pullOpen}
         room={room}
+        youTone={props.gatewayOpen ? 'online' : 'blocked'}
       />
       <Reader
         crumbs={readerCrumbs}
