@@ -1,7 +1,7 @@
 import type { PluginStorage } from '@hermes/plugin-sdk'
 import { useMemo, useState } from 'react'
 
-import { draftLine, saveStepPlan, sendComposer, toggleStep } from './actions'
+import { draftLine, saveStepPlan, sendComposer, sessionTitleFromMessage, toggleStep } from './actions'
 import { COPY } from './copy'
 import { Desk } from './desk'
 import { childStorageKey, type DeskRecords, readDesk, type Workflow, writeDesk } from './desk-store'
@@ -26,6 +26,7 @@ export function AtelierWorkbench(props: {
   const [caret, setCaret] = useState(0)
   const [pullOpen, setPullOpen] = useState(false)
   const [editingFace, setEditingFace] = useState<string | null>(null)
+  const [listEpoch, setListEpoch] = useState(0)
 
   const {
     profiles,
@@ -48,7 +49,7 @@ export function AtelierWorkbench(props: {
     readerPath,
     readerBody,
     sessionHolds
-  } = useAtelierFeeds({ gateway: props.gateway, gatewayOpen: props.gatewayOpen, shelf })
+  } = useAtelierFeeds({ gateway: props.gateway, gatewayOpen: props.gatewayOpen, shelf, listEpoch })
 
   const memberIds = ownerId ? (records.members[ownerId] ?? []) : []
   const names = Object.fromEntries(profiles.map(profile => [profile.id, profile.name]))
@@ -110,6 +111,19 @@ export function AtelierWorkbench(props: {
                   : group.profileIds.filter(id => id !== profileId)
             }))
           })
+        }}
+        onCreateSession={() => {
+          if (!owner) {
+            return
+          }
+
+          void props.gateway
+            .createSession(owner, COPY.newSession)
+            .then(id => {
+              setSessionId(id)
+              setListEpoch(epoch => epoch + 1)
+            })
+            .catch(() => props.notify(COPY.sessionFailed, 'error'))
         }}
         onOpenManuscript={setSessionId}
         onOpenWorkflow={workflow => openWorkflow(workflow, setOwnerId, setSessionId, persist, records)}
@@ -218,6 +232,10 @@ export function AtelierWorkbench(props: {
                 children: { ...records.children, [childStorageKey(roomId, agentId)]: created }
               })
             },
+            adoptSession: created => {
+              setSessionId(created)
+              setListEpoch(epoch => epoch + 1)
+            },
             clear: () => setComposer(''),
             echo: text => setMessages(current => [...current, { role: 'user', name: COPY.you, text }])
           })
@@ -238,6 +256,7 @@ export function AtelierWorkbench(props: {
         progress={progress}
         pullOpen={pullOpen}
         room={room}
+        sessionId={sessionId}
         youTone={props.gatewayOpen ? 'online' : 'blocked'}
       />
       <Reader
@@ -330,6 +349,7 @@ async function sendCurrent(input: {
   gateway: AtelierGateway
   notify: (message: string, kind: 'error' | 'info') => void
   rememberChild: (agentId: string, sessionId: string) => void
+  adoptSession: (sessionId: string) => void
   clear: () => void
   echo: (text: string) => void
 }) {
@@ -344,7 +364,17 @@ async function sendCurrent(input: {
     profiles: input.profiles,
     roomTitle: input.room.title,
     gateway: input.gateway,
-    rememberChild: input.rememberChild
+    rememberChild: input.rememberChild,
+    ensureSession: async () => {
+      if (!input.owner) {
+        return null
+      }
+
+      const created = await input.gateway.createSession(input.owner, sessionTitleFromMessage(input.composer))
+      input.adoptSession(created)
+
+      return created
+    }
   })
 
   if (result.kind === 'mention') {

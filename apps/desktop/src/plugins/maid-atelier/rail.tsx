@@ -3,12 +3,12 @@ import { type ReactNode, useState } from 'react'
 import { COPY } from './copy'
 import type { MaidGroup, Workflow } from './desk-store'
 import type { AtelierProfile, AtelierProject, AtelierSession } from './gateway'
+import { Emoji, Mark, type MarkName } from './marks'
 import { type MaidHold, maidManuscript, type ProgressCard } from './model'
 import { groupSessions, type SessionBucket } from './paths'
-import { Emoji, Mark, type MarkName } from './marks'
 import { portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
-import { TONE_EMOJI, type PresenceTone } from './theme'
+import { type PresenceTone, TONE_EMOJI } from './theme'
 
 const SECTION_EMOJI = {
   groups: '⭐',
@@ -55,6 +55,7 @@ export function Rail(props: {
   onToggleStep: (index: number) => void
   manuscripts: readonly { id: string; label: string }[]
   onOpenManuscript: (id: string) => void
+  onCreateSession: () => void
 }) {
   const [query, setQuery] = useState('')
   const [closed, setClosed] = useState<Readonly<Record<string, boolean>>>({})
@@ -121,6 +122,15 @@ export function Rail(props: {
           {loose.map(profile => (
             <ProfileBranch key={profile.id} profile={profile} {...branch} />
           ))}
+          <button
+            className="atelier-new-session"
+            disabled={!props.gatewayOpen || !props.ownerId}
+            onClick={props.onCreateSession}
+            type="button"
+          >
+            <Emoji symbol="➕" />
+            <span className="atelier-row__name">{COPY.newSession}</span>
+          </button>
         </Section>
         <Section emoji={SECTION_EMOJI.queue} mark="queue" title={COPY.workQueue}>
           <WorkSteps

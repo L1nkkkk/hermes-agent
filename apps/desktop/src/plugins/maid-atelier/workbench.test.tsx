@@ -1,7 +1,8 @@
-import type { PluginStorage } from '@hermes/plugin-sdk'
+import { host, type PluginStorage } from '@hermes/plugin-sdk'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { sessionTitleFromMessage } from './actions'
 import { type AtelierProfile, type AtelierRpc, createGateway } from './gateway'
 import { portraitSrc } from './portraits'
 import { AtelierWorkbench } from './workbench'
@@ -12,6 +13,9 @@ function scripted(handler: (profile: AtelierProfile, method: string) => Promise<
 
 afterEach(() => {
   cleanup()
+  window.location.hash = ''
+  vi.restoreAllMocks()
+  host.openModelPicker(false)
 })
 
 function storage(): PluginStorage {
@@ -32,51 +36,55 @@ function storage(): PluginStorage {
   }
 }
 
+function gatewayPayload(profileRow: AtelierProfile, method: string): unknown {
+  if (method === 'profiles.list') {
+    return {
+      profiles: [
+        {
+          name: 'harper',
+          display_name: 'Harper',
+          canonical_session: { id: 'harper-main', resolved_id: 'harper-main' }
+        },
+        { name: 'notes', display_name: 'Notes', canonical_session: { id: 'notes-main', resolved_id: 'notes-main' } }
+      ]
+    }
+  }
+
+  if (method === 'session.list') {
+    return profileRow.id === 'harper'
+      ? { sessions: [{ id: 'deploy', title: 'ch01_deploy.md', preview: 'status: running', started_at: 10 }] }
+      : { sessions: [] }
+  }
+
+  if (method === 'session.active_list') {
+    return { sessions: [] }
+  }
+
+  if (method === 'session.resume') {
+    return { session_id: 'rt-deploy', stored_session_id: 'deploy', messages: [], running: false }
+  }
+
+  if (method === 'session.control.read') {
+    return { control: { goal: null } }
+  }
+
+  if (method === 'session.create') {
+    return { session_id: 'rt-child', stored_session_id: 'child-notes' }
+  }
+
+  if (method === 'prompt.submit') {
+    return { status: 'streaming' }
+  }
+
+  return {}
+}
+
 function gatewayFor(calls: string[]) {
   return createGateway(
     scripted(async (profileRow, method) => {
       calls.push(`${profileRow.id}:${method}`)
 
-      if (method === 'profiles.list') {
-        return {
-          profiles: [
-            {
-              name: 'harper',
-              display_name: 'Harper',
-              canonical_session: { id: 'harper-main', resolved_id: 'harper-main' }
-            },
-            { name: 'notes', display_name: 'Notes', canonical_session: { id: 'notes-main', resolved_id: 'notes-main' } }
-          ]
-        }
-      }
-
-      if (method === 'session.list') {
-        return profileRow.id === 'harper'
-          ? { sessions: [{ id: 'deploy', title: 'ch01_deploy.md', preview: 'status: running', started_at: 10 }] }
-          : { sessions: [] }
-      }
-
-      if (method === 'session.active_list') {
-        return { sessions: [] }
-      }
-
-      if (method === 'session.resume') {
-        return { session_id: 'rt-deploy', stored_session_id: 'deploy', messages: [], running: false }
-      }
-
-      if (method === 'session.control.read') {
-        return { control: { goal: null } }
-      }
-
-      if (method === 'session.create') {
-        return { session_id: 'rt-child', stored_session_id: 'child-notes' }
-      }
-
-      if (method === 'prompt.submit') {
-        return { status: 'streaming' }
-      }
-
-      return {}
+      return gatewayPayload(profileRow, method)
     })
   )
 }
@@ -128,6 +136,7 @@ describe('atelier workbench', () => {
     const view = render(
       <AtelierWorkbench gateway={gatewayFor([])} gatewayOpen={false} notify={vi.fn()} storage={storage()} />
     )
+
     const face = view.container.querySelector('.atelier-room__face[data-kind="user"]')
 
     expect(view.container.querySelector('.atelier-you .atelier-avatar .atelier-pip')?.getAttribute('data-fill')).toBe(
@@ -389,6 +398,7 @@ describe('atelier workbench', () => {
 
   it('keeps a local group as a profile list and does not load the other profile sessions', async () => {
     const calls: string[] = []
+
     const view = render(
       <AtelierWorkbench gateway={gatewayFor(calls)} gatewayOpen notify={vi.fn()} storage={storage()} />
     )
@@ -420,5 +430,72 @@ describe('atelier workbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse SCP' }))
     expect(within(group as HTMLElement).queryByText('Harper')).toBeNull()
+  })
+
+  it('opens the real model picker, settings, and native chat from the desk', async () => {
+    const openModelPicker = vi.spyOn(host, 'openModelPicker')
+
+    render(<AtelierWorkbench gateway={gatewayFor([])} gatewayOpen notify={vi.fn()} storage={storage()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose model' }))
+    expect(openModelPicker).toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(window.location.hash).toBe('#/settings')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open chat' }))
+    expect(window.location.hash).toBe('#/')
+
+    const session = await waitFor(() => {
+      const row = globalThis.document.querySelector('.atelier-session')
+
+      if (!row) {
+        throw new Error('session missing')
+      }
+
+      return row
+    })
+
+    fireEvent.click(session)
+    fireEvent.click(screen.getByRole('button', { name: 'Open chat' }))
+    expect(window.location.hash).toBe('#/deploy')
+  })
+
+  it('creates a session on send when the desk has none, and from New session', async () => {
+    const calls: string[] = []
+    const titles: string[] = []
+
+    const gateway = createGateway(
+      (async (profile, method, params) => {
+        calls.push(`${profile.id}:${method}`)
+
+        if (method === 'session.create') {
+          titles.push(String(params.title))
+        }
+
+        return gatewayPayload(profile, method)
+      }) as AtelierRpc
+    )
+
+    render(<AtelierWorkbench gateway={gateway} gatewayOpen notify={vi.fn()} storage={storage()} />)
+
+    const composer = await screen.findByLabelText(/Message Harper/)
+    fireEvent.change(composer, { target: { value: 'Ship the chapter tonight' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => {
+      expect(calls).toContain('harper:session.create')
+      expect(calls).toContain('harper:prompt.submit')
+    })
+    expect(titles).toContain('Ship the chapter tonight')
+    expect(sessionTitleFromMessage(`${'Ship the chapter tonight'}\nmore`)).toBe('Ship the chapter tonight')
+    expect(sessionTitleFromMessage('x'.repeat(60)).endsWith('…')).toBe(true)
+    expect(calls.indexOf('harper:session.create')).toBeLessThan(calls.indexOf('harper:prompt.submit'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'New session' }))
+
+    await waitFor(() => {
+      expect(titles.filter(title => title === 'New session').length).toBe(1)
+    })
   })
 })

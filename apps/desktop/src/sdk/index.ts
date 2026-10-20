@@ -90,6 +90,7 @@ import {
   rememberedSessionProfile,
   requestSessionResume,
   sessionMatchesStoredId,
+  setModelPickerOpen,
   setResumeExhaustedSessionId,
   setSessionOwnerHint
 } from '@/store/session'
@@ -658,17 +659,16 @@ export const host = {
     return completeMcpDesktopOAuth({ ...options, profile })
   },
 
+  /** Open or close the shell model picker. The dialog is mounted on the app shell. */
+  openModelPicker: (open = true) => setModelPickerOpen(open),
+
   /** Navigate the app router (hash routes, e.g. '/command-center?section=system'). */
   navigate: (path: string) => {
     const to = path.startsWith('#') ? path.slice(1) : path
 
     window.location.hash = `#${to}`
-    // The router follows the hash and fronts the workspace pane on a route
-    // CHANGE (wiring's `syncWorkspaceRoute` effect). Re-issuing the current
-    // route — palette/statusbar/hotkey while already on the page with a tile
-    // focused — changes nothing, so no event fires and the page stays behind
-    // the tile. Reveal imperatively, the same way `navigateToWorkspacePage`
-    // does for the sidebar and keybinds.
+    // Re-clicking the current route does not emit a router event, so reveal
+    // the workspace pane here the same way the sidebar does.
     syncWorkspaceRoute(to)
   },
 

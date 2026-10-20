@@ -8,13 +8,10 @@ import type {
   RouteContribution,
   SidebarNavContribution
 } from '@hermes/plugin-sdk'
-import { useEffect, useMemo } from 'react'
-
-import { $sidebarOpen, setSidebarOpen } from '@/store/layout'
+import { useMemo } from 'react'
 
 import { COPY } from './copy'
 import { hostGateway } from './gateway'
-import { bindAtelierWindow } from './window-chrome'
 import { AtelierWorkbench } from './workbench'
 
 const PATH = '/atelier'
@@ -22,20 +19,6 @@ const PATH = '/atelier'
 function AtelierPage(props: { storage: PluginContext['storage'] }) {
   const gatewayState = useValue(host.state.gateway)
   const gateway = useMemo(() => hostGateway(), [])
-
-  useEffect(
-    () =>
-      bindAtelierWindow({
-        documentElement: document.documentElement,
-        setSidebarOpen,
-        sidebarOpen: () => $sidebarOpen.get(),
-        subscribePageHide: release => {
-          window.addEventListener('pagehide', release)
-          return () => window.removeEventListener('pagehide', release)
-        }
-      }),
-    []
-  )
 
   return (
     <AtelierWorkbench
@@ -50,7 +33,8 @@ function AtelierPage(props: { storage: PluginContext['storage'] }) {
 const plugin: HermesPlugin = {
   id: 'maid-atelier',
   name: 'Maid Atelier',
-  description: 'Three-column Maid Atelier workbench: sessions, desk with goal and work queue, and a Markdown reader.',
+  description:
+    'Three-column Maid Atelier workbench inside the workspace pane. Host sidebar, settings, model picker, and window chrome stay the real controls.',
   defaultEnabled: true,
   register(ctx) {
     const page = () => <AtelierPage storage={ctx.storage} />

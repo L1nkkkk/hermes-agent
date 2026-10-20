@@ -1,3 +1,4 @@
+import { COPY } from './copy'
 import type { AtelierGateway, AtelierProfile } from './gateway'
 import {
   maidPullDraft,
@@ -62,6 +63,8 @@ export async function sendComposer(
     roomTitle: string
     gateway: AtelierGateway
     rememberChild: (agentId: string, sessionId: string) => void
+    /** Mints a real `session.create` row when the desk has nowhere to send. */
+    ensureSession?: () => Promise<null | string>
   }
 ): Promise<SendResult> {
   const text = message.trim()
@@ -84,7 +87,7 @@ export async function sendComposer(
     return sendMention(text, route.agent, route.childKey, input)
   }
 
-  if (!input.owner || !sessionId) {
+  if (!input.owner) {
     return { kind: 'room-failed' }
   }
 
@@ -92,13 +95,38 @@ export async function sendComposer(
     return { kind: 'offline', name: input.owner.name }
   }
 
+  let roomSession = sessionId
+
+  if (!roomSession && input.ensureSession) {
+    try {
+      roomSession = await input.ensureSession()
+    } catch {
+      return { kind: 'room-failed' }
+    }
+  }
+
+  if (!roomSession) {
+    return { kind: 'room-failed' }
+  }
+
   try {
-    await input.gateway.submit(input.owner, sessionId, text)
+    await input.gateway.submit(input.owner, roomSession, text)
 
     return { kind: 'room' }
   } catch {
     return { kind: 'room-failed' }
   }
+}
+
+/** First line of the composer, capped, used as the `session.create` title. */
+export function sessionTitleFromMessage(text: string): string {
+  const line = text.trim().split(/\r?\n/u)[0]?.replace(/\s+/gu, ' ').trim() ?? ''
+
+  if (!line) {
+    return COPY.newSession
+  }
+
+  return line.length > 48 ? `${line.slice(0, 47)}…` : line
 }
 
 async function sendMention(

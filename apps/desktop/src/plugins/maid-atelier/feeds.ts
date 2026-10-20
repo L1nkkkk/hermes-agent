@@ -14,7 +14,13 @@ import { workspaceCrumbs } from './paths'
 import { emptyProgressCard, progressKey, type ProgressShelf } from './progress-store'
 import type { PresenceTone } from './theme'
 
-export function useAtelierFeeds(input: { gateway: AtelierGateway; gatewayOpen: boolean; shelf: ProgressShelf }) {
+export function useAtelierFeeds(input: {
+  gateway: AtelierGateway
+  gatewayOpen: boolean
+  shelf: ProgressShelf
+  /** Bumps after `session.create` so the rail re-reads `session.list`. */
+  listEpoch: number
+}) {
   const [profiles, setProfiles] = useState<AtelierProfile[]>([])
   const [projects, setProjects] = useState<AtelierProject[]>([])
   const [sessions, setSessions] = useState<AtelierSession[]>([])
@@ -99,7 +105,7 @@ export function useAtelierFeeds(input: { gateway: AtelierGateway; gatewayOpen: b
     return () => {
       live = false
     }
-  }, [owner, input.gateway, input.gatewayOpen])
+  }, [owner, input.gateway, input.gatewayOpen, input.listEpoch])
 
   useEffect(() => {
     let live = true

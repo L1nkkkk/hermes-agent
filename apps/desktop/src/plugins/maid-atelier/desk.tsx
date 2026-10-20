@@ -1,9 +1,8 @@
-import { useStore } from '@nanostores/react'
-
-import { $currentModel } from '@/store/session'
+import { host, useValue } from '@hermes/plugin-sdk'
 
 import { COPY } from './copy'
 import type { AtelierMessage } from './gateway'
+import { Emoji, Mark } from './marks'
 import {
   applyMaidMention,
   draftCandidates,
@@ -16,7 +15,6 @@ import {
   type ProgressModel,
   type Room
 } from './model'
-import { Emoji, Mark } from './marks'
 import { FACE_COUNT, FACE_NAMES, portraitSrc } from './portraits'
 import { Presence, StepPresence } from './presence'
 import { goalBadgeFill, goalEmoji, PRESENCE_FILL, type PresenceTone } from './theme'
@@ -60,6 +58,7 @@ export function Desk(props: {
   onPickFace: (id: string, index: number) => void
   caret: number
   youTone: PresenceTone
+  sessionId: string | null
 }) {
   const agents =
     props.room.kind === 'group' ? props.room.members.flatMap(member => (member.kind === 'agent' ? [member] : [])) : []
@@ -71,7 +70,7 @@ export function Desk(props: {
   const target = findMaidMentionTarget(props.composer, props.caret)
   const choices = target ? maidMentionChoices(mentionAgents, target.query) : []
   const candidates = draftCandidates(props.profiles, props.memberIds, props.ownerId)
-  const model = useStore($currentModel).trim()
+  const model = useValue(host.state.model).trim()
 
   return (
     <section className="atelier-pane atelier-desk" data-atelier-pane="main">
@@ -100,6 +99,17 @@ export function Desk(props: {
           {props.room.kind === 'group' ? (
             <div className="atelier-room__meta">{COPY.groupRoom(props.room.members.length)}</div>
           ) : null}
+        </div>
+        <div className="atelier-host">
+          <button
+            onClick={() => host.navigate(props.sessionId ? `/${encodeURIComponent(props.sessionId)}` : '/')}
+            type="button"
+          >
+            {COPY.openChat}
+          </button>
+          <button onClick={() => host.navigate('/settings')} type="button">
+            {COPY.settings}
+          </button>
         </div>
         <ProgressChip hold={props.chipHold} progress={props.progress} />
       </header>
@@ -193,11 +203,16 @@ export function Desk(props: {
             <span>{COPY.draftLine}</span>
           </button>
           <div className="atelier-composer__end">
-            <span className="atelier-model">
+            <button
+              aria-label={COPY.pickModel}
+              className="atelier-model"
+              onClick={() => host.openModelPicker()}
+              type="button"
+            >
               <Emoji symbol="✨" />
               <Mark name="chip" />
               <span>{model || COPY.noModel}</span>
-            </span>
+            </button>
             <button type="submit">
               <Mark name="send" />
               <span>{COPY.send}</span>
