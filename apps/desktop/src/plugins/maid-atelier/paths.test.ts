@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AtelierProject, AtelierSession } from './gateway'
-import { fullWorkspacePath, groupSessions, workspaceCrumbs } from './paths'
+import { groupSessions } from './paths'
 
 function session(patch: Partial<AtelierSession> & Pick<AtelierSession, 'id' | 'title'>): AtelierSession {
   return {
@@ -15,28 +15,6 @@ function session(patch: Partial<AtelierSession> & Pick<AtelierSession, 'id' | 't
     ...patch
   }
 }
-
-describe('workspace crumbs', () => {
-  it('does not invent folders when the session has no workspace path', () => {
-    expect(workspaceCrumbs({ title: 'ch07_clay.md' })).toEqual(['ch07_clay.md'])
-    expect(workspaceCrumbs({ title: 'Ship the chapter' })).toEqual(['Ship the chapter'])
-    expect(fullWorkspacePath({ title: 'ch07_clay.md' })).toBe('ch07_clay.md')
-  })
-
-  it('uses only segments from the reported path, plus a file-like title', () => {
-    const path = '/work/hp02-rewrite/manuscript/volume_1'
-
-    expect(workspaceCrumbs({ path, title: 'ch07_clay.md' })).toEqual([
-      'hp02-rewrite',
-      'manuscript',
-      'volume_1',
-      'ch07_clay.md'
-    ])
-    expect(workspaceCrumbs({ path, title: 'Ship the chapter' })).toEqual(['hp02-rewrite', 'manuscript', 'volume_1'])
-    expect(fullWorkspacePath({ path, title: 'ch07_clay.md' })).toBe(`${path}/ch07_clay.md`)
-    expect(workspaceCrumbs({ path, title: 'ch07_clay.md' }).join('/')).not.toContain('sample')
-  })
-})
 
 describe('session groups', () => {
   const clay = session({

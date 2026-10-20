@@ -13,7 +13,7 @@ import {
   resolveMaidMentionRoute,
   resolveMaidProgress
 } from './model'
-import { PRESENCE_FILL } from './theme'
+import { PRESENCE_FILL, statusPaint } from './theme'
 
 const harper = { id: 'harper', name: 'Harper' }
 const notes = { id: 'notes', name: 'Notes' }
@@ -28,6 +28,15 @@ describe('maid progress', () => {
       completed: 0,
       total: 0
     })
+  })
+
+  it('reads a control goal and does not invent one when control has none', () => {
+    expect(resolveMaidProgress({ goal: { objective: 'Ship the chapter', status: 'active' } })).toMatchObject({
+      source: 'goal',
+      target: 'Ship the chapter',
+      tone: 'working'
+    })
+    expect(resolveMaidProgress({ goal: null, activeRun: true })).toMatchObject({ source: 'empty', target: '' })
   })
 
   it('counts only real steps', () => {
@@ -146,6 +155,9 @@ describe('presence fills', () => {
   it('keeps pending and blocked apart from each other and from the busy idle online trio', () => {
     expect(PRESENCE_FILL.pending).toBe('#5b8def')
     expect(PRESENCE_FILL.blocked).toBe('#d4546a')
+    expect(statusPaint('pending')).toBe('var(--status-pending, #5b8def)')
+    expect(statusPaint('blocked')).toBe('var(--status-blocked, #d4546a)')
+    expect(statusPaint('online')).not.toBe(PRESENCE_FILL.online)
     expect(PRESENCE_FILL.pending).not.toBe(PRESENCE_FILL.blocked)
     expect(new Set([PRESENCE_FILL.busy, PRESENCE_FILL.idle, PRESENCE_FILL.online]).size).toBe(3)
     expect(PRESENCE_FILL.unknown).toBe('transparent')

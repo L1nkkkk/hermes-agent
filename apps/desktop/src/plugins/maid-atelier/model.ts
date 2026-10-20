@@ -59,7 +59,7 @@ export type Room = {
 }
 
 export type ProgressModel = {
-  source: 'progress' | 'goal' | 'session' | 'empty'
+  source: 'progress' | 'goal' | 'empty'
   target: string
   tone: 'working' | 'idle' | 'completed' | 'attention'
   completed: number
@@ -137,7 +137,6 @@ export function resolveMaidProgress(input: {
   steps?: readonly ProgressStep[] | null
   markdown?: string | null
   goal?: GoalFacts | null
-  title?: string | null
   activeRun?: boolean
 }): ProgressModel {
   const steps = (input.steps ?? []).filter(step => step.step.trim().length > 0)
@@ -158,7 +157,7 @@ export function resolveMaidProgress(input: {
     }
   }
 
-  return progressFromGoalOrTitle(input.goal, input.title, input.activeRun === true)
+  return progressFromGoal(input.goal, input.activeRun === true)
 }
 
 export function findMaidMentionTarget(value: string, caret: number): MentionTarget | null {
@@ -322,19 +321,6 @@ export function draftCandidates(
   return profiles.filter(profile => profile.id && !present.has(profile.id.toLowerCase()))
 }
 
-export function maidManuscript(label: string): boolean {
-  return /(?:^|[\\/])ch\d{2,}[_-]/i.test(label) || /\.(?:md|markdown)$/i.test(label)
-}
-
-export function transcriptMarkdown(title: string, messages: readonly { name: string; text: string }[]): string {
-  const body = messages
-    .filter(message => message.text.trim())
-    .map(message => `## ${message.name}\n\n${message.text.trim()}`)
-    .join('\n\n')
-
-  return body ? `# ${title}\n\n${body}` : `# ${title}\n`
-}
-
 function progressFromSteps(steps: ProgressStep[], activeRun: boolean): ProgressModel {
   const completed = steps.filter(step => step.status === 'completed').length
 
@@ -355,11 +341,8 @@ function progressFromSteps(steps: ProgressStep[], activeRun: boolean): ProgressM
   }
 }
 
-function progressFromGoalOrTitle(
-  goal: GoalFacts | null | undefined,
-  title: string | null | undefined,
-  activeRun: boolean
-): ProgressModel {
+/** A session title is not a goal. Only `session.control.read` supplies one. */
+function progressFromGoal(goal: GoalFacts | null | undefined, activeRun: boolean): ProgressModel {
   if (goal?.objective.trim()) {
     const done = goal.status === 'complete' || goal.status === 'done'
     const attention = goal.status ? GOAL_ATTENTION.has(goal.status) : false
@@ -368,18 +351,6 @@ function progressFromGoalOrTitle(
       source: 'goal',
       target: maidClip(goal.lastStatusNote || goal.objective, 80),
       tone: done ? 'completed' : attention ? 'attention' : goal.status === 'active' || activeRun ? 'working' : 'idle',
-      completed: 0,
-      total: 0
-    }
-  }
-
-  const trimmed = title?.trim() ?? ''
-
-  if (trimmed) {
-    return {
-      source: 'session',
-      target: maidClip(trimmed, 80),
-      tone: activeRun ? 'working' : 'idle',
       completed: 0,
       total: 0
     }
