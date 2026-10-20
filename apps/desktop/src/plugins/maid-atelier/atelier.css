@@ -182,9 +182,10 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
   height: 14px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.4;
+  stroke-width: 1.15;
   stroke-linecap: round;
   stroke-linejoin: round;
+  shape-rendering: geometricPrecision;
 }
 
 .atelier-section h2,
@@ -213,11 +214,13 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 }
 
 .atelier-section__toggle .atelier-mark--caret-right,
-.atelier-section__toggle .atelier-mark--caret-down {
-  width: 12px;
-  height: 12px;
-  opacity: 0.85;
+.atelier-section__toggle .atelier-mark--caret-down,
+.atelier-twist .atelier-mark {
+  width: 11px;
+  height: 11px;
+  opacity: 0.9;
   color: var(--atelier-muted);
+  stroke-width: 1.35;
 }
 
 .atelier-mark--search,
@@ -367,8 +370,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 }
 
 .atelier-twist .atelier-mark {
-  width: 12px;
-  height: 12px;
+  opacity: 1;
 }
 
 .atelier-project .atelier-session {
@@ -683,7 +685,7 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 .atelier-step__box .atelier-mark {
   width: 10px;
   height: 10px;
-  stroke-width: 1.8;
+  stroke-width: 1.45;
 }
 
 .atelier-step[data-done='true'] .atelier-step__box,
@@ -753,9 +755,9 @@ html[data-atelier-window='true'] [data-titlebar-cluster] {
 }
 
 .atelier-goalstrip__badge .atelier-mark {
-  width: 12px;
-  height: 12px;
-  stroke-width: 1.7;
+  width: 11px;
+  height: 11px;
+  stroke-width: 1.45;
 }
 
 .atelier-goalstrip[data-tone='online'] .atelier-goalstrip__badge {
